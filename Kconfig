@@ -1,0 +1,21 @@
+config USR_DRV_CAN
+  bool  "Userspace CAN driver"
+  default n
+  ---help---
+  Support for STM32F4 CAN hardware IP.
+
+
+if USR_DRV_CAN
+
+menu "Userspace CAN driver options"
+
+config USR_DRV_CAN_DEBUG
+  bool "Activate CAN driver debugging"
+  default n
+  ---help---
+    Pretty print various events and data handled by the CAN driver
+    on the kernel serial interface
+
+endmenu
+
+endif
