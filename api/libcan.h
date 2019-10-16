@@ -19,24 +19,31 @@ typedef enum {
 typedef enum {
     CAN_STATE_SLEEP,
     CAN_STATE_INIT,
+    CAN_STATE_READY,
     CAN_STATE_STARTED
 } can_state_t;
 
 typedef struct {
+    /* about infos set at declare time by uper layer **/
     can_id_t    id;              /*< CAN port identifier */
     can_mode_t  mode;            /*< CAN mode (poll or IT based) */
+    bool        timetrigger;     /* Time triggered communication mode */
+    bool        autobusoff;          /* auto bus-off mgmt */
+    bool        autowakeup;      /* wake up from sleep on event */
+    bool        autoretrans;     /* auto retransmission */
+    bool        rxfifolocked;    /* set Rx Fifo locked mode */
+    bool        txfifoprio;      /* set Tx Fifo priority */
+    /* about info set at declare and init time by the driver */
     device_t    can_dev;         /*< CAN associated kernel structure */
     can_state_t state;           /*< current state */
     int         can_dev_handle;  /* device handle returned by kernel */
 } can_context_t;
 
 /* declare device */
-mbed_error_t can_declare(__out can_context_t *ctx,
-                         __in  can_id_t       id,
-                         __in  can_mode_t     mode);
+mbed_error_t can_declare(__out can_context_t *ctx);
 
 /* init device */
-mbed_error_t can_initialize(__in const can_context_t *ctx);
+mbed_error_t can_initialize(can_context_t *ctx);
 
 /* release device */
 mbed_error_t can_release(void);

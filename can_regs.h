@@ -1,11 +1,13 @@
 #ifndef CAN_REGS_H_
 #define CAN_REGS_H_
 
+#include "libc/regutils.h"
+
 #define CAN1_BASE 0x40006400
 #define CAN2_BASE 0x40006800
 
 /* MCR register */
-#define r_CANx_MCR(n)  REG_ADDR(CAN ## n ## _BASE)
+#define _r_CANx_MCR(n)  REG_ADDR(CAN ## n ## _BASE)
 
 #define CAN_MCR_INRQ_Pos 0U
 #define CAN_MCR_INRQ_Msk ((uint32_t)1 << CAN_MCR_INRQ_Pos)
@@ -29,7 +31,7 @@
 #define CAN_MCR_DBF_Msk ((uint32_t)1 << CAN_MCR_RESET_Pos)
 
 /* MSR register */
-#define r_CANx_MSR(n)  REG_ADDR(CAN ## n ## _BASE + 0x004)
+#define _r_CANx_MSR(n)  REG_ADDR(CAN ## n ## _BASE + 0x004)
 
 #define CAN_MSR_INAK_Pos 0U
 #define CAN_MSR_INAK_Msk ((uint32_t)1 << CAN_MSR_INAK_Pos)
@@ -51,7 +53,7 @@
 #define CAN_MSR_RX_Msk ((uint32_t)1 << CAN_MSR_RX_Pos)
 
 /* TSR register */
-#define r_CANx_TSR(n)  REG_ADDR(CAN ## n ## _BASE + 0x008)
+#define _r_CANx_TSR(n)  REG_ADDR(CAN ## n ## _BASE + 0x008)
 
 #define CAN_TSR_RQCP0_Pos 0U
 #define CAN_TSR_RQCP0_Msk ((uint32_t)1 << CAN_TSR_RQCP0_Pos)
@@ -92,52 +94,69 @@
 
 
 
-#define r_CANx_RF0R(n) REG_ADDR(CAN ## n ## _BASE + 0x00C)
-#define r_CANx_RF1R(n) REG_ADDR(CAN ## n ## _BASE + 0x010)
-#define r_CANx_IER(n)  REG_ADDR(CAN ## n ## _BASE + 0x014)
-#define r_CANx_ESR(n)  REG_ADDR(CAN ## n ## _BASE + 0x018)
-#define r_CANx_BTR(n)  REG_ADDR(CAN ## n ## _BASE + 0x01C)
+#define _r_CANx_RF0R(n) REG_ADDR(CAN ## n ## _BASE + 0x00C)
+#define _r_CANx_RF1R(n) REG_ADDR(CAN ## n ## _BASE + 0x010)
+#define _r_CANx_IER(n)  REG_ADDR(CAN ## n ## _BASE + 0x014)
+#define _r_CANx_ESR(n)  REG_ADDR(CAN ## n ## _BASE + 0x018)
+#define _r_CANx_BTR(n)  REG_ADDR(CAN ## n ## _BASE + 0x01C)
 
-#define r_CANx_TI0R(n)  REG_ADDR(CAN ## n ## _BASE + 0x180)
-#define r_CANx_TDT0R(n) REG_ADDR(CAN ## n ## _BASE + 0x184)
-#define r_CANx_TDL0R(n) REG_ADDR(CAN ## n ## _BASE + 0x188)
-#define r_CANx_TDH0R(n) REG_ADDR(CAN ## n ## _BASE + 0x18C)
+#define _r_CANx_TI0R(n)  REG_ADDR(CAN ## n ## _BASE + 0x180)
+#define _r_CANx_TDT0R(n) REG_ADDR(CAN ## n ## _BASE + 0x184)
+#define _r_CANx_TDL0R(n) REG_ADDR(CAN ## n ## _BASE + 0x188)
+#define _r_CANx_TDH0R(n) REG_ADDR(CAN ## n ## _BASE + 0x18C)
 
-#define r_CANx_TI1R(n)  REG_ADDR(CAN ## n ## _BASE + 0x190)
-#define r_CANx_TDT1R(n) REG_ADDR(CAN ## n ## _BASE + 0x194)
-#define r_CANx_TDL1R(n) REG_ADDR(CAN ## n ## _BASE + 0x198)
-#define r_CANx_TDH1R(n) REG_ADDR(CAN ## n ## _BASE + 0x19C)
+#define _r_CANx_TI1R(n)  REG_ADDR(CAN ## n ## _BASE + 0x190)
+#define _r_CANx_TDT1R(n) REG_ADDR(CAN ## n ## _BASE + 0x194)
+#define _r_CANx_TDL1R(n) REG_ADDR(CAN ## n ## _BASE + 0x198)
+#define _r_CANx_TDH1R(n) REG_ADDR(CAN ## n ## _BASE + 0x19C)
 
-#define r_CANx_TI2R(n)  REG_ADDR(CAN ## n ## _BASE + 0x1A0)
-#define r_CANx_TDT2R(n) REG_ADDR(CAN ## n ## _BASE + 0x1A4)
-#define r_CANx_TDL2R(n) REG_ADDR(CAN ## n ## _BASE + 0x1A8)
-#define r_CANx_TDH2R(n) REG_ADDR(CAN ## n ## _BASE + 0x1AC)
+#define _r_CANx_TI2R(n)  REG_ADDR(CAN ## n ## _BASE + 0x1A0)
+#define _r_CANx_TDT2R(n) REG_ADDR(CAN ## n ## _BASE + 0x1A4)
+#define _r_CANx_TDL2R(n) REG_ADDR(CAN ## n ## _BASE + 0x1A8)
+#define _r_CANx_TDH2R(n) REG_ADDR(CAN ## n ## _BASE + 0x1AC)
 
-#define r_CANx_RI0R(n)  REG_ADDR(CAN ## n ## _BASE + 0x1B0)
-#define r_CANx_RDT0R(n) REG_ADDR(CAN ## n ## _BASE + 0x1B4)
-#define r_CANx_RDL0R(n) REG_ADDR(CAN ## n ## _BASE + 0x1B8)
-#define r_CANx_RDH0R(n) REG_ADDR(CAN ## n ## _BASE + 0x1BC)
+#define _r_CANx_RI0R(n)  REG_ADDR(CAN ## n ## _BASE + 0x1B0)
+#define _r_CANx_RDT0R(n) REG_ADDR(CAN ## n ## _BASE + 0x1B4)
+#define _r_CANx_RDL0R(n) REG_ADDR(CAN ## n ## _BASE + 0x1B8)
+#define _r_CANx_RDH0R(n) REG_ADDR(CAN ## n ## _BASE + 0x1BC)
 
-#define r_CANx_RI1R(n)  REG_ADDR(CAN ## n ## _BASE + 0x1C0)
-#define r_CANx_RDT1R(n) REG_ADDR(CAN ## n ## _BASE + 0x1C4)
-#define r_CANx_RDL1R(n) REG_ADDR(CAN ## n ## _BASE + 0x1C8)
-#define r_CANx_RDH1R(n) REG_ADDR(CAN ## n ## _BASE + 0x1CC)
+#define _r_CANx_RI1R(n)  REG_ADDR(CAN ## n ## _BASE + 0x1C0)
+#define _r_CANx_RDT1R(n) REG_ADDR(CAN ## n ## _BASE + 0x1C4)
+#define _r_CANx_RDL1R(n) REG_ADDR(CAN ## n ## _BASE + 0x1C8)
+#define _r_CANx_RDH1R(n) REG_ADDR(CAN ## n ## _BASE + 0x1CC)
 
-#define r_CANx_FMR(n)   REG_ADDR(CAN ## n ## _BASE + 0x200)
-#define r_CANx_FM1R(n)  REG_ADDR(CAN ## n ## _BASE + 0x204)
+#define _r_CANx_FMR(n)   REG_ADDR(CAN ## n ## _BASE + 0x200)
+#define _r_CANx_FM1R(n)  REG_ADDR(CAN ## n ## _BASE + 0x204)
 
-#define r_CANx_FS1R(n)  REG_ADDR(CAN ## n ## _BASE + 0x20C)
+#define _r_CANx_FS1R(n)  REG_ADDR(CAN ## n ## _BASE + 0x20C)
 
-#define r_CANx_FFA1R(n)  REG_ADDR(CAN ## n ## _BASE + 0x214)
+#define _r_CANx_FFA1R(n)  REG_ADDR(CAN ## n ## _BASE + 0x214)
 
-#define r_CANx_FA1R(n)   REG_ADDR(CAN ## n ## _BASE + 0x21C)
+#define _r_CANx_FA1R(n)   REG_ADDR(CAN ## n ## _BASE + 0x21C)
 
-#define r_CANx_F0R1   REG_ADDR(CAN ## n ## _BASE + 0x240)
-#define r_CANx_F0R2   REG_ADDR(CAN ## n ## _BASE + 0x244)
+#define _r_CANx_F0R1   REG_ADDR(CAN ## n ## _BASE + 0x240)
+#define _r_CANx_F0R2   REG_ADDR(CAN ## n ## _BASE + 0x244)
 /* up to F27R2... */
 /* return the register address of calculated CANx_FxRx, based on x and y where
  * x is between 0 and 27 and y is 1 or 2 */
 #define r_CANx_FxRy(n,x,y) REG_ADDR(CAN ## n ## _BASE + 0x0240 + ((x) * 0x8) + (((y) - 1)* 0x4))
 
+
+#define CAN_GET_REGISTER(reg)\
+static inline volatile uint32_t* r_CANx_##reg (uint8_t n){\
+	switch(n){\
+		case 1:\
+			return _r_CANx_##reg(1);\
+			break;\
+		case 2:\
+			return _r_CANx_##reg(2);\
+			break;\
+		default:\
+			return NULL;\
+	}\
+}\
+
+CAN_GET_REGISTER(MCR)
+CAN_GET_REGISTER(MSR)
 
 #endif/*!CAN_REGS_H_*/
