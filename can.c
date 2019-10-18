@@ -157,9 +157,12 @@ mbed_error_t can_initialize(can_context_t *ctx)
         clear_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_TXFP_Msk);
     }
 
-
     /* set the timing register */
-    /* FIXME: todo */
+    /* SILM to normal operation mode */
+    set_reg(r_CANx_BTR(ctx->id), 0x0, CAN_BTR_SILM);
+    /* Disable loop back mode */
+    set_reg(r_CANx_BTR(ctx->id), 0x0, CAN_BTR_LBKM);
+    /* FIXME: todo, TS1, TS2, prescaler to other than default value */
 
     /* update current state */
     ctx->state = CAN_STATE_READY;
@@ -169,8 +172,21 @@ mbed_error_t can_initialize(can_context_t *ctx)
 }
 
 /* release device */
-mbed_error_t can_release(void)
+mbed_error_t can_release(can_context_t *ctx)
 {
+    if (ctx == NULL) {
+        return MBED_ERROR_INVPARAM;
+    }
+    if (can_stop(ctx) != MBED_ERROR_NONE) {
+        return MBED_ERROR_INVSTATE;
+    }
+
+    set_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_RESET_Msk);
+    ctx->state = CAN_STATE_RESET;
+
+    if (sys_cfg(CFG_DEV_RELEASE, (uint32_t)ctx->can_dev_handle) != SYS_E_DONE) {
+        return MBED_ERROR_INVSTATE;
+    }
     return MBED_ERROR_NONE;
 }
 
@@ -181,14 +197,43 @@ mbed_error_t can_set_filters(void)
 }
 
 /* start the CAN (required after initialization) */
-mbed_error_t can_start(void)
+mbed_error_t can_start(can_context_t *ctx)
 {
+    int check = 0;
+    if (ctx->state != CAN_STATE_READY) {
+        return MBED_ERROR_INVSTATE;
+    }
+
+    clear_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_INRQ_Msk);
+
+    /* waiting for init mode acknowledgment */
+    do {
+        check = *r_CANx_MSR(ctx->id) & CAN_MSR_INAK_Msk;
+    } while (check == 0);
+    ctx->state = CAN_STATE_STARTED;
     return MBED_ERROR_NONE;
 }
 
 /* Stop the CAN */
-mbed_error_t can_stop(void)
+mbed_error_t can_stop(can_context_t *ctx)
 {
+    int check = 0;
+    if (ctx == NULL) {
+        return MBED_ERROR_INVPARAM;
+    }
+    if (ctx->state != CAN_STATE_STARTED) {
+        return MBED_ERROR_INVSTATE;
+    }
+    set_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_INRQ_Msk);
+    /* waiting for init mode acknowledgment */
+    do {
+        check = *r_CANx_MSR(ctx->id) & CAN_MSR_INAK_Msk;
+    } while (check == 0);
+
+    /* Exit from sleep mode */
+    clear_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_SLEEP_Msk);
+
+    ctx->state = CAN_STATE_READY;
     return MBED_ERROR_NONE;
 }
 

@@ -100,6 +100,20 @@
 #define _r_CANx_ESR(n)  REG_ADDR(CAN ## n ## _BASE + 0x018)
 #define _r_CANx_BTR(n)  REG_ADDR(CAN ## n ## _BASE + 0x01C)
 
+
+#define CAN_BTR_BRP_Pos 0U
+#define CAN_BTR_BRP_Msk ((uint32_t)0x3ff << CAN_BTR_BRP_Pos)
+#define CAN_BTR_TS1_Pos 16U
+#define CAN_BTR_TS1_Msk ((uint32_t)0xf << CAN_BTR_TS1_Pos)
+#define CAN_BTR_TS2_Pos 20U
+#define CAN_BTR_TS2_Msk ((uint32_t)0x7 << CAN_BTR_TS2_Pos)
+#define CAN_BTR_SJW_Pos 24U
+#define CAN_BTR_SJW_Msk ((uint32_t)0x3 << CAN_BTR_SJW_Pos)
+#define CAN_BTR_LBKM_Pos 30U
+#define CAN_BTR_LBKM_Msk ((uint32_t)0x1 << CAN_BTR_LBKM_Pos)
+#define CAN_BTR_SILM_Pos 31U
+#define CAN_BTR_SILM_Msk ((uint32_t)0x1 << CAN_BTR_SILM_Pos)
+
 #define _r_CANx_TI0R(n)  REG_ADDR(CAN ## n ## _BASE + 0x180)
 #define _r_CANx_TDT0R(n) REG_ADDR(CAN ## n ## _BASE + 0x184)
 #define _r_CANx_TDL0R(n) REG_ADDR(CAN ## n ## _BASE + 0x188)
@@ -158,5 +172,6 @@ static inline volatile uint32_t* r_CANx_##reg (uint8_t n){\
 
 CAN_GET_REGISTER(MCR)
 CAN_GET_REGISTER(MSR)
+CAN_GET_REGISTER(BTR)
 
 #endif/*!CAN_REGS_H_*/

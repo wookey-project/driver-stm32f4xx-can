@@ -20,7 +20,9 @@ typedef enum {
     CAN_STATE_SLEEP,
     CAN_STATE_INIT,
     CAN_STATE_READY,
-    CAN_STATE_STARTED
+    CAN_STATE_STARTED,
+    CAN_STATE_STOPPED,
+    CAN_STATE_RESET
 } can_state_t;
 
 typedef struct {
@@ -46,16 +48,16 @@ mbed_error_t can_declare(__out can_context_t *ctx);
 mbed_error_t can_initialize(can_context_t *ctx);
 
 /* release device */
-mbed_error_t can_release(void);
+mbed_error_t can_release(can_context_t *ctx);
 
 /* set filters */
 mbed_error_t can_set_filters(void);
 
 /* start the CAN (required after initialization) */
-mbed_error_t can_start(void);
+mbed_error_t can_start(can_context_t *ctx);
 
 /* Stop the CAN */
-mbed_error_t can_stop(void);
+mbed_error_t can_stop(can_context_t *ctx);
 
 /* send data into one of the CAN Tx FIFO */
 mbed_error_t can_xmit(void);
