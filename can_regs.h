@@ -95,9 +95,73 @@
 
 
 #define _r_CANx_RF0R(n) REG_ADDR(CAN ## n ## _BASE + 0x00C)
+
+#define CAN_RF0R_FMP0_Pos 0U
+#define CAN_RF0R_FMP0_Msk ((uint32_t)3 << CAN_RF0R_FMP0_Pos)
+#define CAN_RF0R_FULL0_Pos 3U
+#define CAN_RF0R_FULL0_Msk ((uint32_t)1 << CAN_RF0R_FULL0_Pos)
+#define CAN_RF0R_FOVR0_Pos 4U
+#define CAN_RF0R_FOVR0_Msk ((uint32_t)1 << CAN_RF0R_FOVR0_Pos)
+#define CAN_RF0R_RFOM0_Pos 5U
+#define CAN_RF0R_RFOM0_Msk ((uint32_t)1 << CAN_RF0R_RFOM0_Pos)
+
 #define _r_CANx_RF1R(n) REG_ADDR(CAN ## n ## _BASE + 0x010)
+
+#define CAN_RF1R_FMP1_Pos 0U
+#define CAN_RF1R_FMP1_Msk ((uint32_t)3 << CAN_RF1R_FMP1_Pos)
+#define CAN_RF1R_FULL1_Pos 3U
+#define CAN_RF1R_FULL1_Msk ((uint32_t)1 << CAN_RF1R_FULL1_Pos)
+#define CAN_RF1R_FOVR1_Pos 4U
+#define CAN_RF1R_FOVR1_Msk ((uint32_t)1 << CAN_RF1R_FOVR1_Pos)
+#define CAN_RF1R_RFOM1_Pos 5U
+#define CAN_RF1R_RFOM1_Msk ((uint32_t)1 << CAN_RF1R_RFOM1_Pos)
+
+
 #define _r_CANx_IER(n)  REG_ADDR(CAN ## n ## _BASE + 0x014)
+
+
+#define CAN_IER_TMEIE_Pos 0U
+#define CAN_IER_TMEIE_Msk ((uint32_t)1 << CAN_IER_TMEIE_Pos)
+#define CAN_IER_FMPIE0_Pos 1U
+#define CAN_IER_FMPIE0_Msk ((uint32_t)1 << CAN_IER_FMPIE0_Pos)
+#define CAN_IER_FFIE0_Pos 2U
+#define CAN_IER_FFIE0_Msk ((uint32_t)1 << CAN_IER_FFIE0_Pos)
+#define CAN_IER_FOVIE0_Pos 3U
+#define CAN_IER_FOVIE0_Msk ((uint32_t)1 << CAN_IER_FOVIE0_Pos)
+#define CAN_IER_FMPIE1_Pos 4U
+#define CAN_IER_FMPIE1_Msk ((uint32_t)1 << CAN_IER_FMPIE1_Pos)
+#define CAN_IER_FFIE1_Pos 5U
+#define CAN_IER_FFIE1_Msk ((uint32_t)1 << CAN_IER_FFIE1_Pos)
+#define CAN_IER_FOVIE1_Pos 6U
+#define CAN_IER_FOVIE1_Msk ((uint32_t)1 << CAN_IER_FOVIE1_Pos)
+#define CAN_IER_EWGIE_Pos 8U
+#define CAN_IER_EWGIE_Msk ((uint32_t)1 << CAN_IER_EWGIE_Pos)
+#define CAN_IER_EPVIE_Pos 9U
+#define CAN_IER_EPVIE_Msk ((uint32_t)1 << CAN_IER_EPVIE_Pos)
+#define CAN_IER_BOFIE_Pos 10U
+#define CAN_IER_BOFIE_Msk ((uint32_t)1 << CAN_IER_BOFIE_Pos)
+#define CAN_IER_LECIE_Pos 11U
+#define CAN_IER_LECIE_Msk ((uint32_t)1 << CAN_IER_LECIE_Pos)
+#define CAN_IER_ERRIE_Pos 15U
+#define CAN_IER_ERRIE_Msk ((uint32_t)1 << CAN_IER_ERRIE_Pos)
+#define CAN_IER_WKUIE_Pos 16U
+#define CAN_IER_WKUIE_Msk ((uint32_t)1 << CAN_IER_WKUIE_Pos)
+#define CAN_IER_SLKIE_Pos 17U
+#define CAN_IER_SLKIE_Msk ((uint32_t)1 << CAN_IER_SLKIE_Pos)
+
 #define _r_CANx_ESR(n)  REG_ADDR(CAN ## n ## _BASE + 0x018)
+
+#define CAN_ESR_EWGF_Pos 0U
+#define CAN_ESR_EWGF_Msk ((uint32_t)1 << CAN_ESR_EWGF_Pos)
+#define CAN_ESR_EPVF_Pos 1U
+#define CAN_ESR_EPVF_Msk ((uint32_t)1 << CAN_ESR_EPVF_Pos)
+#define CAN_ESR_BOFF_Pos 2U
+#define CAN_ESR_BOFF_Msk ((uint32_t)1 << CAN_ESR_BOFF_Pos)
+#define CAN_ESR_LEC_Pos 4U
+#define CAN_ESR_LEC_Msk ((uint32_t)7 << CAN_ESR_LEC_Pos)
+#define CAN_ESR_TEC_Pos 16U
+#define CAN_ESR_TEC_Msk ((uint32_t)0xffff << CAN_ESR_TEC_Pos)
+
 #define _r_CANx_BTR(n)  REG_ADDR(CAN ## n ## _BASE + 0x01C)
 
 
@@ -174,6 +238,7 @@ CAN_GET_REGISTER(MCR)
 CAN_GET_REGISTER(MSR)
 CAN_GET_REGISTER(BTR)
 CAN_GET_REGISTER(IER)
+CAN_GET_REGISTER(ESR)
 CAN_GET_REGISTER(RF0R)
 CAN_GET_REGISTER(RF1R)
 

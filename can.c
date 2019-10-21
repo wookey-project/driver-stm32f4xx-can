@@ -26,6 +26,7 @@ static void can_IRQHandler(uint8_t irq,
     uint32_t msr, ier, esr; /* status and control */
     uint32_t tsr = 0, rf0r = 0, rf1r = 0; /* tx/rx */
 
+    uint32_t err = CAN_ERROR_NONE;
 
     /* get back CAN state (depending on current IRQ) */
     switch (irq) {
@@ -59,20 +60,180 @@ static void can_IRQHandler(uint8_t irq,
 
     /* now handling current interrupt */
     /********** handling transmit case ***************/
-    /* Tx Mbox 0 */
-    /* Tx Mbox 1 */
-    /* Tx Mbox 2 */
+    /* IT on Xmit */
+    if ((ier & CAN_IER_TMEIE_Msk) != 0) {
+        /* Tx Mbox 0 */
+        if ((tsr & CAN_TSR_RQCP0_Msk) != 0) {
+            /* Transmit (or abort) performed on Mbox0, cleared by PH */
+            if ((tsr & CAN_TSR_TXOK0_Msk) != 0) {
+                /* Transfer complete */
+                can_event(CAN_EVENT_TX_MBOX0_COMPLETE, err);
+            } else {
+                /* Transfer aborted, get error */
+                if ((tsr & CAN_TSR_ALST0_Msk) != 0) {
+                    err |= CAN_ERROR_TX_ARBITRATION_LOST_MB0;
+                }
+                if ((tsr & CAN_TSR_TERR0_Msk) != 0) {
+                    err |= CAN_ERROR_TX_TRANSMISSION_ERR_MB0;
+                }
+                can_event(CAN_EVENT_TX_MBOX0_ABORT, err);
+            }
+        }
+        /* Tx Mbox 1 */
+        if ((tsr & CAN_TSR_RQCP1_Msk) != 0) {
+            /* Transmit (or abort) performed on Mbox1, cleared by PH */
+            if ((tsr & CAN_TSR_TXOK1_Msk) != 0) {
+                /* Transfer complete */
+                can_event(CAN_EVENT_TX_MBOX0_COMPLETE, err);
+            } else {
+                /* Transfer aborted, get error */
+                if ((tsr & CAN_TSR_ALST1_Msk) != 0) {
+                    err |= CAN_ERROR_TX_ARBITRATION_LOST_MB1;
+                }
+                if ((tsr & CAN_TSR_TERR1_Msk) != 0) {
+                    err |= CAN_ERROR_TX_TRANSMISSION_ERR_MB1;
+                }
+                can_event(CAN_EVENT_TX_MBOX1_ABORT, err);
+            }
+        }
+        /* Tx Mbox 2 */
+        if ((tsr & CAN_TSR_RQCP2_Msk) != 0) {
+            /* Transmit (or abort) performed on Mbox2, cleared by PH */
+            if ((tsr & CAN_TSR_TXOK2_Msk) != 0) {
+                /* Transfer complete */
+                can_event(CAN_EVENT_TX_MBOX2_COMPLETE, err);
+            } else {
+                /* Transfer aborted, get error */
+                if ((tsr & CAN_TSR_ALST2_Msk) != 0) {
+                    err |= CAN_ERROR_TX_ARBITRATION_LOST_MB2;
+                }
+                if ((tsr & CAN_TSR_TERR2_Msk) != 0) {
+                    err |= CAN_ERROR_TX_TRANSMISSION_ERR_MB2;
+                }
+                can_event(CAN_EVENT_TX_MBOX2_ABORT, err);
+            }
+        }
+    }
     /********** handling receive case ***************/
-    /* Tx FIFO0 overrun */
-    /* Tx FIFO0 full */
-    /* Tx FIFO0 msg pending */
-    /* Tx FIFO1 overrun */
-    /* Tx FIFO1 full */
-    /* Tx FIFO1 msg pending */
+    /* Rx FIFO0 overrun */
+    if ((ier & CAN_IER_FOVIE0_Msk) != 0) {
+        if ((rf0r & CAN_RF0R_FOVR0_Msk) != 0) {
+            err |= CAN_ERROR_RX_FIFO0_OVERRRUN;
+
+            /* clear FOV0 by setting 1 into it */
+            set_reg_bits(r_CANx_RF0R(1), CAN_RF0R_FOVR0_Msk);
+        }
+    }
+    /* Rx FIFO0 full */
+    if ((ier & CAN_IER_FFIE0_Msk) != 0) {
+        if ((rf0r & CAN_RF0R_FULL0_Msk) != 0) {
+            err |= CAN_ERROR_RX_FIFO0_FULL;
+
+            /* clear FULL0 by setting 1 into it */
+            set_reg_bits(r_CANx_RF0R(1), CAN_RF0R_FULL0_Msk);
+            can_event(CAN_EVENT_RX_FIFO0_FULL, err);
+        }
+    }
+    /* Rx FIFO0 msg pending */
+    if ((ier & CAN_IER_FMPIE0_Msk) != 0) {
+        if ((rf0r & CAN_RF0R_FMP0_Msk) != 0) {
+            /* clear FULL0 by setting 1 into it */
+            can_event(CAN_EVENT_RX_FIFO0_MSG_PENDING, err);
+        }
+    }
+    /* Rx FIFO1 overrun */
+    if ((ier & CAN_IER_FOVIE1_Msk) != 0) {
+        if ((rf0r & CAN_RF1R_FOVR1_Msk) != 0) {
+            err |= CAN_ERROR_RX_FIFO1_OVERRRUN;
+
+            /* clear FOV1 by setting 1 into it */
+            set_reg_bits(r_CANx_RF1R(1), CAN_RF1R_FOVR1_Msk);
+        }
+    }
+    /* Rx FIFO1 full */
+    if ((ier & CAN_IER_FFIE1_Msk) != 0) {
+        if ((rf0r & CAN_RF1R_FULL1_Msk) != 0) {
+            err |= CAN_ERROR_RX_FIFO1_FULL;
+
+            /* clear FULL1 by setting 1 into it */
+            set_reg_bits(r_CANx_RF1R(1), CAN_RF1R_FULL1_Msk);
+            can_event(CAN_EVENT_RX_FIFO1_FULL, err);
+        }
+    }
+    /* Rx FIFO1 msg pending */
+    if ((ier & CAN_IER_FMPIE1_Msk) != 0) {
+        if ((rf0r & CAN_RF1R_FMP1_Msk) != 0) {
+            /* clear FULL0 by setting 1 into it */
+            can_event(CAN_EVENT_RX_FIFO1_MSG_PENDING, err);
+        }
+    }
     /********** handling status change **************/
-    /* Sleep */
     /* Wakeup */
+    if ((ier & CAN_IER_WKUIE_Msk) != 0) {
+        if ((msr & CAN_MSR_WKUI_Msk) != 0) {
+            /* MSR:WKUI already acknowledge by PH */
+            can_event(CAN_EVENT_WAKUP_FROM_RX_MSG, err);
+        }
+    }
+    /* Sleep */
+    if ((ier & CAN_IER_SLKIE_Msk) != 0) {
+        if ((msr & CAN_MSR_SLAKI_Msk) != 0) {
+            /* MSR:SLAKI already acknowledged by PH */
+            can_event(CAN_EVENT_SLEEP, err);
+        }
+    }
     /* Errors */
+    if ((ier & CAN_IER_ERRIE_Msk) != 0) {
+        if ((msr & CAN_MSR_ERRI_Msk) != 0) {
+            /* calculating error mask */
+            if ((ier & CAN_IER_EWGIE_Msk) != 0) {
+                if ((esr & CAN_ESR_EWGF_Msk) != 0) {
+                    err |= CAN_ERROR_ERR_WARNING;
+                }
+            }
+            if ((ier & CAN_IER_EPVIE_Msk) != 0) {
+                if ((esr & CAN_ESR_EPVF_Msk) != 0) {
+                    err |= CAN_ERROR_ERR_PASV;
+                }
+            }
+            if ((ier & CAN_IER_BOFIE_Msk) != 0) {
+                if ((esr & CAN_ESR_BOFF_Msk) != 0) {
+                    err |= CAN_ERROR_ERR_BUS_OFF;
+                }
+            }
+            if ((ier & CAN_IER_LECIE_Msk) != 0) {
+                if ((esr & CAN_ESR_LEC_Msk) != 0) {
+                    uint32_t lec = get_reg_value((uint32_t*)esr, CAN_ESR_LEC_Msk, CAN_ESR_LEC_Pos);
+                    switch (lec) {
+                        case 0x0:
+                            err |= CAN_ERROR_ERR_LEC_STUFF;
+                            break;
+                        case 0x1:
+                            err |= CAN_ERROR_ERR_LEC_FROM;
+                            break;
+                        case 0x3:
+                            err |= CAN_ERROR_ERR_LEC_ACK;
+                            break;
+                        case 0x4:
+                            err |= CAN_ERROR_ERR_LEC_BR;
+                            break;
+                        case 0x5:
+                            err |= CAN_ERROR_ERR_LEC_BD;
+                            break;
+                        case 0x6:
+                            err |= CAN_ERROR_ERR_LEC_CRC;
+                            break;
+                        default:
+                            break;
+                    }
+                    clear_reg_bits(r_CANx_ESR(1), CAN_ESR_LEC_Msk);
+                }
+            }
+            if (err != CAN_ERROR_NONE) {
+                can_event(CAN_EVENT_ERROR, err);
+            }
+        }
+    }
 err:
     return;
 }
@@ -403,6 +564,4 @@ mbed_error_t can_receive(const __in can_context_t *ctx)
     ctx = ctx;
     return MBED_ERROR_NONE;
 }
-
-
 
