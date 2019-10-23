@@ -204,21 +204,51 @@
 #define _r_CANx_RDH1R(n) REG_ADDR(CAN ## n ## _BASE + 0x1CC)
 
 #define _r_CANx_FMR(n)   REG_ADDR(CAN ## n ## _BASE + 0x200)
+
+#define CAN_FMR_FINIT_Pos 0U
+#define CAN_FMR_FINIT_Msk ((uint32_t)0x1 << CAN_FMR_FINIT_Pos)
+#define CAN_FMR_CAN2SB_Pos 8U
+#define CAN_FMR_CAN2SB_Msk ((uint32_t)0x3f << CAN_FMR_CAN2SB_Pos)
+
 #define _r_CANx_FM1R(n)  REG_ADDR(CAN ## n ## _BASE + 0x204)
+
+/* FM1R is a table of 28 bits holding configuration for each
+ * of 28 filters (0=2 32bits in mask mode, 1=2 32bits in list mode) */
 
 #define _r_CANx_FS1R(n)  REG_ADDR(CAN ## n ## _BASE + 0x20C)
 
+/* FS1R is a table of 28 bits holding scale configuration for each
+ * of 28 filters (0=dual 16bits, 1=single 32bits) */
+
 #define _r_CANx_FFA1R(n)  REG_ADDR(CAN ## n ## _BASE + 0x214)
+
+/* FFA1R is a table of 28 bits holding scale FIFO assignment
+ * configuration for each of 28 filters (0 = FIFO0, 1 = FIFO1) */
 
 #define _r_CANx_FA1R(n)   REG_ADDR(CAN ## n ## _BASE + 0x21C)
 
+/* FA1R is a table of 28 bit-enable state for each of the
+ * 28 filters (0=not active, 1=active) */
+
+/* can filtering registers (two per filters, 28 filters) */
 #define _r_CANx_F0R1   REG_ADDR(CAN ## n ## _BASE + 0x240)
 #define _r_CANx_F0R2   REG_ADDR(CAN ## n ## _BASE + 0x244)
 /* up to F27R2... */
 /* return the register address of calculated CANx_FxRx, based on x and y where
  * x is between 0 and 27 and y is 1 or 2 */
-#define r_CANx_FxRy(n,x,y) REG_ADDR(CAN ## n ## _BASE + 0x0240 + ((x) * 0x8) + (((y) - 1)* 0x4))
+//#define r_CANx_FxRy(n,x,y) REG_ADDR(CAN ## n ## _BASE + 0x0240 + ((x) * 0x8) + (((y) - 1)* 0x4))
 
+typedef struct __attribute__((packed)) {
+    uint32_t FiR1;
+    uint32_t fiR2;
+} can_filters_table_t;
+
+/* max number of filters register pairs */
+#define CAN_MAX_FILTERS 28
+
+/* filters register pairs table */
+static volatile can_filters_table_t *_r_can1_filters = (volatile can_filters_table_t*)REG_ADDR(CAN1_BASE + 0x240);
+static volatile can_filters_table_t *_r_can2_filters = (volatile can_filters_table_t*)REG_ADDR(CAN2_BASE + 0x240);
 
 #define CAN_GET_REGISTER(reg)\
 static inline volatile uint32_t* r_CANx_##reg (uint8_t n){\
@@ -232,14 +262,26 @@ static inline volatile uint32_t* r_CANx_##reg (uint8_t n){\
 		default:\
 			return NULL;\
 	}\
-}\
+}
+
+/* return the address of the first filter register pairs. other are concatenated
+ * in memory after it. */
+#define CAN_GET_FILTER(n)\
+static inline volatile can_filters_table_t* r_CAN##n##_FxRy(void){\
+	return _r_can##n##_filters;\
+}
+
 
 CAN_GET_REGISTER(MCR)
 CAN_GET_REGISTER(MSR)
 CAN_GET_REGISTER(BTR)
 CAN_GET_REGISTER(IER)
 CAN_GET_REGISTER(ESR)
+CAN_GET_REGISTER(TSR)
 CAN_GET_REGISTER(RF0R)
 CAN_GET_REGISTER(RF1R)
+
+CAN_GET_FILTER(1)
+CAN_GET_FILTER(2)
 
 #endif/*!CAN_REGS_H_*/

@@ -249,7 +249,7 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
         errcode = MBED_ERROR_INVPARAM;
         goto end;
     }
-    if (ctx->mode != CAN_MODE_POLL && ctx->mode != CAN_MODE_IT) {
+    if (ctx->access != CAN_ACCESS_POLL && ctx->access != CAN_ACCESS_IT) {
         errcode = MBED_ERROR_INVPARAM;
         goto end;
     }
@@ -270,7 +270,7 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
         case CAN_PORT_1:
            ctx->can_dev.address = can1_dev_infos.address;
            ctx->can_dev.size = can1_dev_infos.size;
-           if (ctx->mode == CAN_MODE_POLL) {
+           if (ctx->access == CAN_ACCESS_POLL) {
                ctx->can_dev.irq_num = 0;
            } else {
                ctx->can_dev.irq_num = 4;
@@ -472,9 +472,28 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
 
     /* set the timing register */
     /* SILM to normal operation mode */
-    set_reg(r_CANx_BTR(ctx->id), 0x0, CAN_BTR_SILM);
-    /* Disable loop back mode */
-    set_reg(r_CANx_BTR(ctx->id), 0x0, CAN_BTR_LBKM);
+    switch (ctx->mode) {
+        case CAN_MODE_NORMAL:
+            set_reg(r_CANx_BTR(ctx->id), 0x0, CAN_BTR_SILM);
+            set_reg(r_CANx_BTR(ctx->id), 0x0, CAN_BTR_LBKM);
+            break;
+        case CAN_MODE_SILENT:
+            set_reg(r_CANx_BTR(ctx->id), 0x1, CAN_BTR_SILM);
+            set_reg(r_CANx_BTR(ctx->id), 0x0, CAN_BTR_LBKM);
+            break;
+        case CAN_MODE_LOOPBACK:
+            set_reg(r_CANx_BTR(ctx->id), 0x0, CAN_BTR_SILM);
+            set_reg(r_CANx_BTR(ctx->id), 0x1, CAN_BTR_LBKM);
+            break;
+        case CAN_MODE_SELFTEST:
+            set_reg(r_CANx_BTR(ctx->id), 0x1, CAN_BTR_SILM);
+            set_reg(r_CANx_BTR(ctx->id), 0x1, CAN_BTR_LBKM);
+            break;
+        default:
+            set_reg(r_CANx_BTR(ctx->id), 0x0, CAN_BTR_SILM);
+            set_reg(r_CANx_BTR(ctx->id), 0x0, CAN_BTR_LBKM);
+            break;
+    }
     /* FIXME: todo, TS1, TS2, prescaler to other than default value */
 
     /* update current state */
@@ -506,8 +525,18 @@ mbed_error_t can_release(__inout can_context_t *ctx)
 /* set filters */
 mbed_error_t can_set_filters(__in can_context_t *ctx)
 {
-    ctx = ctx;
-    return MBED_ERROR_NONE;
+    volatile can_filters_table_t * filter_table;
+    mbed_error_t err = MBED_ERROR_NONE;
+
+    if (ctx->id == 1) {
+        filter_table = r_CAN1_FxRy();
+    } else if (ctx->id == 2) {
+        filter_table = r_CAN1_FxRy();
+    } else {
+        err = MBED_ERROR_INVPARAM;
+    }
+    /* TODO handle communication filters */
+    return err;
 }
 
 /* start the CAN (required after initialization) */
@@ -551,11 +580,45 @@ mbed_error_t can_stop(__inout can_context_t *ctx)
     return MBED_ERROR_NONE;
 }
 
-/* send data into one of the CAN Tx FIFO */
-mbed_error_t can_xmit(const __in can_context_t *ctx)
+/* send data into one of the CAN Tx MBox */
+mbed_error_t can_xmit(const __in can_context_t *ctx,
+                            __in uint8_t        data[])
 {
-    ctx = ctx;
-    return MBED_ERROR_NONE;
+    uint32_t tme;
+    can_mbox_t mbox;
+    mbed_error_t errcode = MBED_ERROR_NONE;
+    /* sanitize */
+    if (!ctx || !data) {
+        errcode = MBED_ERROR_INVPARAM;
+        goto err;
+    }
+    if (ctx->state != CAN_STATE_STARTED) {
+        errcode = MBED_ERROR_INVSTATE;
+        goto err;
+    }
+    tme = get_reg_value(r_CANx_TSR(ctx->id), CAN_TSR_TME_Msk, CAN_TSR_TME_Pos);
+    if (tme == 0x0) {
+        /* no mailbox empty */
+        errcode = MBED_ERROR_BUSY;
+        goto err;
+    }
+    /* select first empty mbox */
+    if ((tme & 0x1)) {
+        mbox = CAN_MBOX_0;
+    } else if (tme & 0x2) {
+        mbox = CAN_MBOX_1;
+    } else if (tme & 0x4) {
+        mbox = CAN_MBOX_2;
+    }
+
+    /* Transmitting a frame is done by:
+     * - setting the TIxR register, to set frame metadatas
+     * - setting the TDTxR register, setting frame timestamping
+     * - setting the TDLxR & TDHxR with data given by upper layer (up to 8 bytes) */
+
+
+err:
+    return errcode;
 }
 
 /* get back data from one of the CAN Rx FIFO */
@@ -565,3 +628,49 @@ mbed_error_t can_receive(const __in can_context_t *ctx)
     return MBED_ERROR_NONE;
 }
 
+
+mbed_error_t can_is_txmsg_pending(const __in  can_context_t *ctx,
+                                        __in  can_mbox_t mbox,
+                                        __out bool *status)
+{
+    mbed_error_t errcode = MBED_ERROR_NONE;
+    uint32_t tme;
+    /* sanitize */
+    if (!ctx || !status) {
+        errcode = MBED_ERROR_INVPARAM;
+        goto err;
+    }
+    if (ctx->state != CAN_STATE_STARTED) {
+        errcode = MBED_ERROR_INVSTATE;
+        goto err;
+    }
+    tme = get_reg_value(r_CANx_TSR(ctx->id), CAN_TSR_TME_Msk, CAN_TSR_TME_Pos);
+    switch (mbox) {
+        case CAN_MBOX_0:
+            if ((tme & 0x1) == 0) {
+               *status = true;
+            } else {
+               *status = false;
+            }
+            break;
+        case CAN_MBOX_1:
+            if ((tme & 0x2) == 0) {
+               *status = true;
+            } else {
+               *status = false;
+            }
+            break;
+        case CAN_MBOX_2:
+            if ((tme & 0x4) == 0) {
+               *status = true;
+            } else {
+               *status = false;
+            }
+            break;
+        default:
+            errcode = MBED_ERROR_INVPARAM;
+            break;
+    }
+err:
+    return errcode;
+}

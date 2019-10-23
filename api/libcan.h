@@ -82,8 +82,21 @@ typedef enum {
 } can_id_t;
 
 typedef enum {
-    CAN_MODE_POLL,
-    CAN_MODE_IT
+    CAN_MBOX_0 = 0,
+    CAN_MBOX_1,
+    CAN_MBOX_2
+} can_mbox_t;
+
+typedef enum {
+    CAN_ACCESS_POLL,
+    CAN_ACCESS_IT
+} can_access_t;
+
+typedef enum {
+    CAN_MODE_NORMAL,
+    CAN_MODE_SILENT,
+    CAN_MODE_LOOPBACK,
+    CAN_MODE_SELFTEST /* Silent + loopback, see RM00090 chap 32.5.3 */
 } can_mode_t;
 
 typedef enum {
@@ -97,18 +110,19 @@ typedef enum {
 
 typedef struct {
     /* about infos set at declare time by uper layer **/
-    can_id_t    id;              /*< CAN port identifier */
-    can_mode_t  mode;            /*< CAN mode (poll or IT based) */
-    bool        timetrigger;     /* Time triggered communication mode */
-    bool        autobusoff;          /* auto bus-off mgmt */
-    bool        autowakeup;      /* wake up from sleep on event */
-    bool        autoretrans;     /* auto retransmission */
-    bool        rxfifolocked;    /* set Rx Fifo locked mode */
-    bool        txfifoprio;      /* set Tx Fifo priority */
+    can_id_t      id;              /*< CAN port identifier */
+    can_mode_t    mode;            /*< CAN mode (normal, silent (debug) or loopback (debug)) */
+    can_access_t  access;            /*< CAN access mode (poll or IT based) */
+    bool          timetrigger;     /* Time triggered communication mode */
+    bool          autobusoff;          /* auto bus-off mgmt */
+    bool          autowakeup;      /* wake up from sleep on event */
+    bool          autoretrans;     /* auto retransmission */
+    bool          rxfifolocked;    /* set Rx Fifo locked mode */
+    bool          txfifoprio;      /* set Tx Fifo priority */
     /* about info set at declare and init time by the driver */
-    device_t    can_dev;         /*< CAN associated kernel structure */
-    can_state_t state;           /*< current state */
-    int         can_dev_handle;  /* device handle returned by kernel */
+    device_t      can_dev;         /*< CAN associated kernel structure */
+    can_state_t   state;           /*< current state */
+    int           can_dev_handle;  /* device handle returned by kernel */
 } can_context_t;
 
 /* declare device */
@@ -130,7 +144,12 @@ mbed_error_t can_start(__inout can_context_t *ctx);
 mbed_error_t can_stop(__inout can_context_t *ctx);
 
 /* send data into one of the CAN Tx FIFO */
-mbed_error_t can_xmit(const __in can_context_t *ctx);
+mbed_error_t can_xmit(const __in can_context_t *ctx,
+                            __in uint8_t        data[]);
+
+mbed_error_t can_is_txmsg_pending(const __in  can_context_t *ctx,
+                                        __in  can_mbox_t mbox,
+                                        __out bool *status);
 
 /* get back data from one of the CAN Rx FIFO */
 mbed_error_t can_receive(const __in can_context_t *ctx);
