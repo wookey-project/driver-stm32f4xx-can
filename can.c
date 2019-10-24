@@ -622,10 +622,85 @@ err:
 }
 
 /* get back data from one of the CAN Rx FIFO */
-mbed_error_t can_receive(const __in can_context_t *ctx)
+mbed_error_t can_receive(const __in  can_context_t *ctx,
+                         const __in  can_fifo_t     fifo,
+                               __out can_header_t  *header,
+                               __out uint8_t        *data)
 {
-    ctx = ctx;
-    return MBED_ERROR_NONE;
+    data = data;
+    volatile uint32_t *can_rfxr;
+    volatile uint32_t *can_rixr;
+    volatile uint32_t *can_rdtxr;
+    volatile uint32_t *can_rdlxr;
+    volatile uint32_t *can_rdhxr;
+    mbed_error_t errcode = MBED_ERROR_NONE;
+    /* sanitize */
+    if (!ctx || !data || !header) {
+        errcode = MBED_ERROR_INVPARAM;
+        goto err;
+    }
+    if (ctx->state != CAN_STATE_STARTED) {
+        errcode = MBED_ERROR_INVSTATE;
+        goto err;
+    }
+    /* is current fifo empty ? */
+    switch (fifo) {
+        case CAN_FIFO_0:
+            can_rfxr = r_CANx_RF0R(ctx->id);
+            can_rixr = r_CANx_RI0R(ctx->id);
+            can_rdtxr = r_CANx_RDT0R(ctx->id);
+            can_rdlxr = r_CANx_RDL0R(ctx->id);
+            can_rdhxr = r_CANx_RDH0R(ctx->id);
+            if ((*can_rfxr & CAN_RF0R_FMP0_Msk) == 0U) {
+                errcode = MBED_ERROR_NOTREADY;
+                goto err;
+            }
+            break;
+        case CAN_FIFO_1:
+            can_rfxr = r_CANx_RF1R(ctx->id);
+            can_rixr = r_CANx_RI1R(ctx->id);
+            can_rdtxr = r_CANx_RDT1R(ctx->id);
+            can_rdlxr = r_CANx_RDL1R(ctx->id);
+            can_rdhxr = r_CANx_RDH1R(ctx->id);
+            if ((*can_rfxr & CAN_RF1R_FMP1_Msk) == 0U) {
+                errcode = MBED_ERROR_NOTREADY;
+                goto err;
+            }
+        default:
+            errcode = MBED_ERROR_INVPARAM;
+            goto err;
+            break;
+    }
+    /* let's read from current FIFO */
+    /* get header */
+
+    /* mask and pos are the same for all FIFOs */
+    header->IDE = get_reg_value(can_rixr, CAN_RIxR_IDE_Msk,  CAN_RIxR_IDE_Pos);
+    if (header->IDE == 0x0) {
+        /* standard Identifier */
+        header->id.stdid = (uint16_t)get_reg_value(can_rixr, CAN_RIxR_STID_Msk, CAN_RIxR_STID_Pos);
+    } else {
+        /* extended identifier */
+        header->id.stdid = get_reg_value(can_rixr, CAN_RIxR_EXID_Msk, CAN_RIxR_EXID_Pos);
+    }
+    header->RTR = get_reg_value(can_rixr, CAN_RIxR_RTR_Msk, CAN_RIxR_RTR_Pos);
+    header->DLC = (uint8_t)get_reg_value(can_rdtxr, CAN_RDTxR_DLC_Msk, CAN_RDTxR_DLC_Pos);
+    header->FMI = (uint8_t)get_reg_value(can_rdtxr, CAN_RDTxR_FMI_Msk, CAN_RDTxR_FMI_Pos);
+    header->ts = (uint8_t)get_reg_value(can_rdtxr, CAN_RDTxR_TIME_Msk, CAN_RDTxR_TIME_Pos);
+    /* get data */
+    data[0] = (uint8_t)get_reg_value(can_rdlxr, CAN_RDLxR_DATA0_Msk, CAN_RDLxR_DATA0_Pos);
+    data[1] = (uint8_t)get_reg_value(can_rdlxr, CAN_RDLxR_DATA1_Msk, CAN_RDLxR_DATA1_Pos);
+    data[2] = (uint8_t)get_reg_value(can_rdlxr, CAN_RDLxR_DATA2_Msk, CAN_RDLxR_DATA2_Pos);
+    data[3] = (uint8_t)get_reg_value(can_rdlxr, CAN_RDLxR_DATA3_Msk, CAN_RDLxR_DATA3_Pos);
+    data[4] = (uint8_t)get_reg_value(can_rdhxr, CAN_RDHxR_DATA4_Msk, CAN_RDHxR_DATA4_Pos);
+    data[5] = (uint8_t)get_reg_value(can_rdhxr, CAN_RDHxR_DATA5_Msk, CAN_RDHxR_DATA5_Pos);
+    data[6] = (uint8_t)get_reg_value(can_rdhxr, CAN_RDHxR_DATA6_Msk, CAN_RDHxR_DATA6_Pos);
+    data[7] = (uint8_t)get_reg_value(can_rdhxr, CAN_RDHxR_DATA7_Msk, CAN_RDHxR_DATA7_Pos);
+    /* release fifo */
+    set_reg_bits(can_rfxr, CAN_RF0R_RFOM0_Msk);
+
+err:
+    return errcode;
 }
 
 

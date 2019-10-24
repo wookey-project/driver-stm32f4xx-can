@@ -194,9 +194,49 @@
 #define _r_CANx_TDH2R(n) REG_ADDR(CAN ## n ## _BASE + 0x1AC)
 
 #define _r_CANx_RI0R(n)  REG_ADDR(CAN ## n ## _BASE + 0x1B0)
+
+
+#define CAN_RIxR_RTR_Pos 1U
+#define CAN_RIxR_RTR_Msk ((uint32_t)0x1 << CAN_RIxR_RTR_Pos)
+#define CAN_RIxR_IDE_Pos 2U
+#define CAN_RIxR_IDE_Msk ((uint32_t)0x1 << CAN_RIxR_IDE_Pos)
+#define CAN_RIxR_EXID_Pos 3U
+#define CAN_RIxR_EXID_Msk ((uint32_t)0x3ffff << CAN_RIxR_EXID_Pos)
+#define CAN_RIxR_STID_Pos 21U
+#define CAN_RIxR_STID_Msk ((uint32_t)0x7ff << CAN_RIxR_STID_Pos)
+
 #define _r_CANx_RDT0R(n) REG_ADDR(CAN ## n ## _BASE + 0x1B4)
+
+#define CAN_RDTxR_DLC_Pos 0U
+#define CAN_RDTxR_DLC_Msk ((uint32_t)0xf << CAN_RDTxR_DLC_Pos)
+#define CAN_RDTxR_FMI_Pos 8U
+#define CAN_RDTxR_FMI_Msk ((uint32_t)0xff << CAN_RDTxR_FMI_Pos)
+#define CAN_RDTxR_TIME_Pos 16U
+#define CAN_RDTxR_TIME_Msk ((uint32_t)0xffff << CAN_RDTxR_TIME_Pos)
+
 #define _r_CANx_RDL0R(n) REG_ADDR(CAN ## n ## _BASE + 0x1B8)
+
+#define CAN_RDLxR_DATA0_Pos 0U
+#define CAN_RDLxR_DATA0_Msk ((uint32_t)0xff << CAN_RDLxR_DATA0_Pos)
+#define CAN_RDLxR_DATA1_Pos 8U
+#define CAN_RDLxR_DATA1_Msk ((uint32_t)0xff << CAN_RDLxR_DATA1_Pos)
+#define CAN_RDLxR_DATA2_Pos 16U
+#define CAN_RDLxR_DATA2_Msk ((uint32_t)0xff << CAN_RDLxR_DATA2_Pos)
+#define CAN_RDLxR_DATA3_Pos 24U
+#define CAN_RDLxR_DATA3_Msk ((uint32_t)0xff << CAN_RDLxR_DATA3_Pos)
+
 #define _r_CANx_RDH0R(n) REG_ADDR(CAN ## n ## _BASE + 0x1BC)
+
+#define CAN_RDHxR_DATA4_Pos 0U
+#define CAN_RDHxR_DATA4_Msk ((uint32_t)0xff << CAN_RDHxR_DATA4_Pos)
+#define CAN_RDHxR_DATA5_Pos 8U
+#define CAN_RDHxR_DATA5_Msk ((uint32_t)0xff << CAN_RDHxR_DATA5_Pos)
+#define CAN_RDHxR_DATA6_Pos 16U
+#define CAN_RDHxR_DATA6_Msk ((uint32_t)0xff << CAN_RDHxR_DATA6_Pos)
+#define CAN_RDHxR_DATA7_Pos 24U
+#define CAN_RDHxR_DATA7_Msk ((uint32_t)0xff << CAN_RDHxR_DATA7_Pos)
+
+
 
 #define _r_CANx_RI1R(n)  REG_ADDR(CAN ## n ## _BASE + 0x1C0)
 #define _r_CANx_RDT1R(n) REG_ADDR(CAN ## n ## _BASE + 0x1C4)
@@ -280,6 +320,14 @@ CAN_GET_REGISTER(ESR)
 CAN_GET_REGISTER(TSR)
 CAN_GET_REGISTER(RF0R)
 CAN_GET_REGISTER(RF1R)
+CAN_GET_REGISTER(RI0R)
+CAN_GET_REGISTER(RDT0R)
+CAN_GET_REGISTER(RDL0R)
+CAN_GET_REGISTER(RDH0R)
+CAN_GET_REGISTER(RI1R)
+CAN_GET_REGISTER(RDT1R)
+CAN_GET_REGISTER(RDL1R)
+CAN_GET_REGISTER(RDH1R)
 
 CAN_GET_FILTER(1)
 CAN_GET_FILTER(2)

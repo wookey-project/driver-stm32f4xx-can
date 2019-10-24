@@ -81,11 +81,20 @@ typedef enum {
    CAN_PORT_3 = 3
 } can_id_t;
 
+/* can transmit mbox id */
 typedef enum {
     CAN_MBOX_0 = 0,
     CAN_MBOX_1,
     CAN_MBOX_2
 } can_mbox_t;
+
+/* can receive FIFO id */
+typedef enum {
+    CAN_FIFO_0 = 0,
+    CAN_FIFO_1
+} can_fifo_t;
+
+
 
 typedef enum {
     CAN_ACCESS_POLL,
@@ -107,6 +116,23 @@ typedef enum {
     CAN_STATE_STOPPED,
     CAN_STATE_RESET
 } can_state_t;
+
+/* a CAN msg uses one id format between standard or extended, depending on IDE
+ * field */
+typedef union {
+    uint16_t stdid;
+    uint32_t extid;
+} u_can_msg_id_t;
+
+/* can message header */
+typedef struct {
+    u_can_msg_id_t id;
+    uint32_t IDE;
+    uint32_t RTR;
+    uint8_t DLC;
+    uint8_t FMI;
+    uint32_t ts;
+} can_header_t;
 
 typedef struct {
     /* about infos set at declare time by uper layer **/
@@ -152,6 +178,9 @@ mbed_error_t can_is_txmsg_pending(const __in  can_context_t *ctx,
                                         __out bool *status);
 
 /* get back data from one of the CAN Rx FIFO */
-mbed_error_t can_receive(const __in can_context_t *ctx);
+mbed_error_t can_receive(const __in  can_context_t *ctx,
+                         const __in  can_fifo_t     fifo,
+                               __out can_header_t  *header,
+                               __out uint8_t        data[]);
 
 #endif/*!LIBCAN_H_*/
