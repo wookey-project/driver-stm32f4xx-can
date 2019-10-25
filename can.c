@@ -615,14 +615,19 @@ mbed_error_t can_stop(__inout can_context_t *ctx)
 }
 
 /* send data into one of the CAN Tx MBox */
-mbed_error_t can_xmit(const __in can_context_t *ctx,
-                            __in uint8_t        data[])
+mbed_error_t can_xmit(const __in  can_context_t *ctx,
+                            __in  can_header_t  *header,
+                            __in  can_data_t    *data,
+                            __out can_mbox_t    *mbox)
 {
     uint32_t tme;
-    can_mbox_t mbox;
+    volatile uint32_t *can_tdlxr;
+    volatile uint32_t *can_tdhxr;
+    volatile uint32_t *can_tixr;
+    volatile uint32_t *can_tdtxr;
     mbed_error_t errcode = MBED_ERROR_NONE;
     /* sanitize */
-    if (!ctx || !data) {
+    if (!ctx || !data || !header || !mbox) {
         errcode = MBED_ERROR_INVPARAM;
         goto err;
     }
@@ -638,12 +643,39 @@ mbed_error_t can_xmit(const __in can_context_t *ctx,
     }
     /* select first empty mbox */
     if ((tme & 0x1)) {
-        mbox = CAN_MBOX_0;
+        *mbox = CAN_MBOX_0;
+        can_tdlxr = r_CANx_TDL0R(ctx->id);
+        can_tdhxr = r_CANx_TDH0R(ctx->id);
+        can_tixr = r_CANx_TI0R(ctx->id);
+        can_tdtxr = r_CANx_TDT0R(ctx->id);
     } else if (tme & 0x2) {
-        mbox = CAN_MBOX_1;
+        *mbox = CAN_MBOX_1;
+        can_tdlxr = r_CANx_TDL1R(ctx->id);
+        can_tdhxr = r_CANx_TDH1R(ctx->id);
+        can_tixr = r_CANx_TI1R(ctx->id);
+        can_tdtxr = r_CANx_TDT1R(ctx->id);
     } else if (tme & 0x4) {
-        mbox = CAN_MBOX_2;
+        *mbox = CAN_MBOX_2;
+        can_tdlxr = r_CANx_TDL2R(ctx->id);
+        can_tdhxr = r_CANx_TDH2R(ctx->id);
+        can_tixr = r_CANx_TI2R(ctx->id);
+        can_tdtxr = r_CANx_TDT2R(ctx->id);
+    } else {
+        /* should not be executed with the tme == 0x0 check */
+        errcode = MBED_ERROR_UNKNOWN;
+        goto err;
+
     }
+    /* about the header */
+    if (header->IDE == CAN_ID_STD) {
+        set_reg_value(can_tixr, header->id.stdid, CAN_TIxR_STID_Msk,  CAN_TIxR_STID_Pos);
+    } else if (header->IDE == CAN_ID_EXT) {
+        set_reg_value(can_tixr, header->id.extid, CAN_TIxR_EXID_Msk,  CAN_TIxR_EXID_Pos);
+    }
+    set_reg_value(can_tdtxr, header->DLC, CAN_TDTxR_DLC_Msk, CAN_TDTxR_DLC_Pos);
+
+    /* TODO: */
+      /* Set up the Transmit Global Time mode */
 
     /* Transmitting a frame is done by:
      * - setting the TIxR register, to set frame metadatas

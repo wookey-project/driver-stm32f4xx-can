@@ -125,10 +125,15 @@ typedef union {
     uint32_t extid;
 } u_can_msg_id_t;
 
+typedef enum {
+    CAN_ID_STD = 0,
+    CAN_ID_EXT = 1
+} can_id_extention_t;
+
 /* can message header */
 typedef struct {
     u_can_msg_id_t id;
-    uint32_t IDE;
+    can_id_extention_t IDE;
     uint32_t RTR;
     uint8_t DLC;
     uint8_t FMI;
@@ -211,8 +216,10 @@ mbed_error_t can_start(__inout can_context_t *ctx);
 mbed_error_t can_stop(__inout can_context_t *ctx);
 
 /* send data into one of the CAN Tx FIFO */
-mbed_error_t can_xmit(const __in can_context_t *ctx,
-                            __in uint8_t        data[]);
+mbed_error_t can_xmit(const __in  can_context_t *ctx,
+                            __in  can_header_t  *header,
+                            __in  can_data_t    *data,
+                            __out can_mbox_t    *mbox);
 
 mbed_error_t can_is_txmsg_pending(const __in  can_context_t *ctx,
                                         __in  can_mbox_t mbox,
