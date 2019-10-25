@@ -134,6 +134,26 @@ typedef struct {
     uint32_t ts;
 } can_header_t;
 
+typedef struct __attribute__((packed)) {
+    uint8_t data0;
+    uint8_t data1;
+    uint8_t data2;
+    uint8_t data3;
+    uint8_t data4;
+    uint8_t data5;
+    uint8_t data6;
+    uint8_t data7;
+} can_data_fields_t;
+
+/* can message data, using one of the following format:
+ * - uint8_t table
+ * - structured format, for named access
+ */
+typedef union {
+    uint8_t           data[8];
+    can_data_fields_t data_fields;
+} can_data_t;
+
 typedef struct {
     /* about infos set at declare time by uper layer **/
     can_id_t      id;              /*< CAN port identifier */
@@ -181,6 +201,6 @@ mbed_error_t can_is_txmsg_pending(const __in  can_context_t *ctx,
 mbed_error_t can_receive(const __in  can_context_t *ctx,
                          const __in  can_fifo_t     fifo,
                                __out can_header_t  *header,
-                               __out uint8_t        data[]);
+                               __out can_data_t    *data);
 
 #endif/*!LIBCAN_H_*/

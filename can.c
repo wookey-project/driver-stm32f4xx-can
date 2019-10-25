@@ -625,7 +625,7 @@ err:
 mbed_error_t can_receive(const __in  can_context_t *ctx,
                          const __in  can_fifo_t     fifo,
                                __out can_header_t  *header,
-                               __out uint8_t        *data)
+                               __out can_data_t    *data)
 {
     data = data;
     volatile uint32_t *can_rfxr;
@@ -688,14 +688,14 @@ mbed_error_t can_receive(const __in  can_context_t *ctx,
     header->FMI = (uint8_t)get_reg_value(can_rdtxr, CAN_RDTxR_FMI_Msk, CAN_RDTxR_FMI_Pos);
     header->ts = (uint8_t)get_reg_value(can_rdtxr, CAN_RDTxR_TIME_Msk, CAN_RDTxR_TIME_Pos);
     /* get data */
-    data[0] = (uint8_t)get_reg_value(can_rdlxr, CAN_RDLxR_DATA0_Msk, CAN_RDLxR_DATA0_Pos);
-    data[1] = (uint8_t)get_reg_value(can_rdlxr, CAN_RDLxR_DATA1_Msk, CAN_RDLxR_DATA1_Pos);
-    data[2] = (uint8_t)get_reg_value(can_rdlxr, CAN_RDLxR_DATA2_Msk, CAN_RDLxR_DATA2_Pos);
-    data[3] = (uint8_t)get_reg_value(can_rdlxr, CAN_RDLxR_DATA3_Msk, CAN_RDLxR_DATA3_Pos);
-    data[4] = (uint8_t)get_reg_value(can_rdhxr, CAN_RDHxR_DATA4_Msk, CAN_RDHxR_DATA4_Pos);
-    data[5] = (uint8_t)get_reg_value(can_rdhxr, CAN_RDHxR_DATA5_Msk, CAN_RDHxR_DATA5_Pos);
-    data[6] = (uint8_t)get_reg_value(can_rdhxr, CAN_RDHxR_DATA6_Msk, CAN_RDHxR_DATA6_Pos);
-    data[7] = (uint8_t)get_reg_value(can_rdhxr, CAN_RDHxR_DATA7_Msk, CAN_RDHxR_DATA7_Pos);
+    data->data_fields.data0 = (uint8_t)get_reg_value(can_rdlxr, CAN_RDLxR_DATA0_Msk, CAN_RDLxR_DATA0_Pos);
+    data->data_fields.data1 = (uint8_t)get_reg_value(can_rdlxr, CAN_RDLxR_DATA1_Msk, CAN_RDLxR_DATA1_Pos);
+    data->data_fields.data2 = (uint8_t)get_reg_value(can_rdlxr, CAN_RDLxR_DATA2_Msk, CAN_RDLxR_DATA2_Pos);
+    data->data_fields.data3 = (uint8_t)get_reg_value(can_rdlxr, CAN_RDLxR_DATA3_Msk, CAN_RDLxR_DATA3_Pos);
+    data->data_fields.data4 = (uint8_t)get_reg_value(can_rdhxr, CAN_RDHxR_DATA4_Msk, CAN_RDHxR_DATA4_Pos);
+    data->data_fields.data5 = (uint8_t)get_reg_value(can_rdhxr, CAN_RDHxR_DATA5_Msk, CAN_RDHxR_DATA5_Pos);
+    data->data_fields.data6 = (uint8_t)get_reg_value(can_rdhxr, CAN_RDHxR_DATA6_Msk, CAN_RDHxR_DATA6_Pos);
+    data->data_fields.data7 = (uint8_t)get_reg_value(can_rdhxr, CAN_RDHxR_DATA7_Msk, CAN_RDHxR_DATA7_Pos);
     /* release fifo */
     set_reg_bits(can_rfxr, CAN_RF0R_RFOM0_Msk);
 
