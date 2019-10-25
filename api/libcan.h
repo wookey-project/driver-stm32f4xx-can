@@ -70,16 +70,17 @@ typedef enum {
     CAN_EVENT_ERROR
 } can_event_t;
 
-mbed_error_t can_event(can_event_t event, uint32_t errcode);
-
-
-/**********************************************************************/
 
 typedef enum {
    CAN_PORT_1 = 1,
    CAN_PORT_2 = 2,
    CAN_PORT_3 = 3
 } can_id_t;
+
+mbed_error_t can_event(can_event_t event, can_id_t id, uint32_t errcode);
+
+
+/**********************************************************************/
 
 /* can transmit mbox id */
 typedef enum {
