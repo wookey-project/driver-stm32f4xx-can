@@ -28,6 +28,8 @@ static void can_IRQHandler(uint8_t irq,
 
     uint32_t err = CAN_ERROR_NONE;
 
+    uint8_t canid = 0;
+
     /* get back CAN state (depending on current IRQ) */
     switch (irq) {
         case CAN1_TX_IRQ:
@@ -35,24 +37,56 @@ static void can_IRQHandler(uint8_t irq,
             esr = read_reg_value(_r_CANx_ESR(1));
             msr = status;
             tsr = data;
+            canid = 1;
             break;
         case CAN1_RX0_IRQ:
             ier = read_reg_value(_r_CANx_IER(1));
             esr = read_reg_value(_r_CANx_ESR(1));
             msr = status;
             rf0r = data;
+            canid = 1;
             break;
         case CAN1_RX1_IRQ:
             ier = read_reg_value(_r_CANx_IER(1));
             esr = read_reg_value(_r_CANx_ESR(1));
             msr = status;
             rf1r = data;
+            canid = 1;
             break;
         case CAN1_SCE_IRQ:
             ier = read_reg_value(_r_CANx_IER(1));
             msr = status;
             esr = data;
+            canid = 1;
             break;
+        case CAN2_TX_IRQ:
+            ier = read_reg_value(_r_CANx_IER(2));
+            esr = read_reg_value(_r_CANx_ESR(2));
+            msr = status;
+            tsr = data;
+            canid = 2;
+            break;
+        case CAN2_RX0_IRQ:
+            ier = read_reg_value(_r_CANx_IER(2));
+            esr = read_reg_value(_r_CANx_ESR(2));
+            msr = status;
+            rf0r = data;
+            canid = 2;
+            break;
+        case CAN2_RX1_IRQ:
+            ier = read_reg_value(_r_CANx_IER(2));
+            esr = read_reg_value(_r_CANx_ESR(2));
+            msr = status;
+            rf1r = data;
+            canid = 2;
+            break;
+        case CAN2_SCE_IRQ:
+            ier = read_reg_value(_r_CANx_IER(2));
+            msr = status;
+            esr = data;
+            canid = 2;
+            break;
+
         default:
             goto err;
             break;
@@ -121,7 +155,7 @@ static void can_IRQHandler(uint8_t irq,
             err |= CAN_ERROR_RX_FIFO0_OVERRRUN;
 
             /* clear FOV0 by setting 1 into it */
-            set_reg_bits(r_CANx_RF0R(1), CAN_RF0R_FOVR0_Msk);
+            set_reg_bits(r_CANx_RF0R(canid), CAN_RF0R_FOVR0_Msk);
         }
     }
     /* Rx FIFO0 full */
@@ -130,7 +164,7 @@ static void can_IRQHandler(uint8_t irq,
             err |= CAN_ERROR_RX_FIFO0_FULL;
 
             /* clear FULL0 by setting 1 into it */
-            set_reg_bits(r_CANx_RF0R(1), CAN_RF0R_FULL0_Msk);
+            set_reg_bits(r_CANx_RF0R(canid), CAN_RF0R_FULL0_Msk);
             can_event(CAN_EVENT_RX_FIFO0_FULL, err);
         }
     }
@@ -147,7 +181,7 @@ static void can_IRQHandler(uint8_t irq,
             err |= CAN_ERROR_RX_FIFO1_OVERRRUN;
 
             /* clear FOV1 by setting 1 into it */
-            set_reg_bits(r_CANx_RF1R(1), CAN_RF1R_FOVR1_Msk);
+            set_reg_bits(r_CANx_RF1R(canid), CAN_RF1R_FOVR1_Msk);
         }
     }
     /* Rx FIFO1 full */
@@ -156,7 +190,7 @@ static void can_IRQHandler(uint8_t irq,
             err |= CAN_ERROR_RX_FIFO1_FULL;
 
             /* clear FULL1 by setting 1 into it */
-            set_reg_bits(r_CANx_RF1R(1), CAN_RF1R_FULL1_Msk);
+            set_reg_bits(r_CANx_RF1R(canid), CAN_RF1R_FULL1_Msk);
             can_event(CAN_EVENT_RX_FIFO1_FULL, err);
         }
     }
@@ -226,7 +260,7 @@ static void can_IRQHandler(uint8_t irq,
                         default:
                             break;
                     }
-                    clear_reg_bits(r_CANx_ESR(1), CAN_ESR_LEC_Msk);
+                    clear_reg_bits(r_CANx_ESR(canid), CAN_ESR_LEC_Msk);
                 }
             }
             if (err != CAN_ERROR_NONE) {

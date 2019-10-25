@@ -134,6 +134,14 @@ typedef struct {
     uint32_t ts;
 } can_header_t;
 
+/*
+ * A CAN message is composed of upto 8 bytes (size is specified by DLC).
+ * These bytes are stored in a structured type based on a union, which
+ * permit to choose beteen an unsigned bytes table or a structured list of
+ * named bytes. The type to use is can_data_t.
+ */
+
+/* can message content structured type, fields named */
 typedef struct __attribute__((packed)) {
     uint8_t data0;
     uint8_t data1;
@@ -154,6 +162,18 @@ typedef union {
     can_data_fields_t data_fields;
 } can_data_t;
 
+/****************************************************************/
+
+/*
+ * The CAN driver is using a context, which is used during the overall driver
+ * usage. This context is separated into two parts:
+ * - one set by the upper layer, read by the driver at declaration time
+ * - one set by the driver, during the device lifecycle, to keep the
+ *   context uptodate
+ *
+ * The driver permits to handle multiple CAN devices using multiple contexts
+ * in the same time, as there is no globals.
+ */
 typedef struct {
     /* about infos set at declare time by uper layer **/
     can_id_t      id;              /*< CAN port identifier */
