@@ -202,7 +202,28 @@
 #define CAN_TDTxR_TIME_Msk ((uint32_t)0xffff << CAN_TDTxR_TIME_Pos)
 
 #define _r_CANx_TDL0R(n) REG_ADDR(CAN ## n ## _BASE + 0x188)
+
+#define CAN_TDLxR_DATA0_Pos 0U
+#define CAN_TDLxR_DATA0_Msk ((uint32_t)0xff << CAN_TDLxR_DATA0_Pos)
+#define CAN_TDLxR_DATA1_Pos 8U
+#define CAN_TDLxR_DATA1_Msk ((uint32_t)0xff << CAN_TDLxR_DATA1_Pos)
+#define CAN_TDLxR_DATA2_Pos 16U
+#define CAN_TDLxR_DATA2_Msk ((uint32_t)0xff << CAN_TDLxR_DATA2_Pos)
+#define CAN_TDLxR_DATA3_Pos 24U
+#define CAN_TDLxR_DATA3_Msk ((uint32_t)0xff << CAN_TDLxR_DATA3_Pos)
+
 #define _r_CANx_TDH0R(n) REG_ADDR(CAN ## n ## _BASE + 0x18C)
+
+#define CAN_TDHxR_DATA4_Pos 0U
+#define CAN_TDHxR_DATA4_Msk ((uint32_t)0xff << CAN_TDHxR_DATA4_Pos)
+#define CAN_TDHxR_DATA5_Pos 8U
+#define CAN_TDHxR_DATA5_Msk ((uint32_t)0xff << CAN_TDHxR_DATA5_Pos)
+#define CAN_TDHxR_DATA6_Pos 16U
+#define CAN_TDHxR_DATA6_Msk ((uint32_t)0xff << CAN_TDHxR_DATA6_Pos)
+#define CAN_TDHxR_DATA7_Pos 24U
+#define CAN_TDHxR_DATA7_Msk ((uint32_t)0xff << CAN_TDHxR_DATA7_Pos)
+
+
 
 #define _r_CANx_TI1R(n)  REG_ADDR(CAN ## n ## _BASE + 0x190)
 #define _r_CANx_TDT1R(n) REG_ADDR(CAN ## n ## _BASE + 0x194)

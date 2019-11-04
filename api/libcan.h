@@ -132,12 +132,13 @@ typedef enum {
 
 /* can message header */
 typedef struct {
-    u_can_msg_id_t id;
-    can_id_extention_t IDE;
-    uint32_t RTR;
-    uint8_t DLC;
-    uint8_t FMI;
-    uint32_t ts;
+    u_can_msg_id_t     id;    /*< CAN identifier */
+    can_id_extention_t IDE;   /*< CAN identifier extention type */
+    uint32_t           RTR;   /*< Remote transmission request (data or remote frame) */
+    uint8_t            DLC;   /*< Data length */
+    uint8_t            FMI;   /*< Filter match (index of filters that have matched (Rx case) */
+    bool               TGT;   /*< transmit global time ? (Tx case) */
+    uint8_t            gt;    /*< global time, set by sender */
 } can_header_t;
 
 /*

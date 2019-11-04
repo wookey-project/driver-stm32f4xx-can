@@ -671,18 +671,31 @@ mbed_error_t can_xmit(const __in  can_context_t *ctx,
         set_reg_value(can_tixr, header->id.stdid, CAN_TIxR_STID_Msk,  CAN_TIxR_STID_Pos);
     } else if (header->IDE == CAN_ID_EXT) {
         set_reg_value(can_tixr, header->id.extid, CAN_TIxR_EXID_Msk,  CAN_TIxR_EXID_Pos);
+    }else {
+        /* invalid header format */
+        errcode = MBED_ERROR_INVPARAM;
+        goto err;
     }
     set_reg_value(can_tdtxr, header->DLC, CAN_TDTxR_DLC_Msk, CAN_TDTxR_DLC_Pos);
+    if (header->TGT == true) {
+        /* global time transmission requested */
+        set_reg_bits(can_tdtxr, CAN_TDTxR_TGT_Msk);
+    }
 
-    /* TODO: */
-      /* Set up the Transmit Global Time mode */
+    set_reg_value(can_tdlxr, data->data_fields.data0, CAN_TDLxR_DATA0_Msk, CAN_TDLxR_DATA0_Pos);
+    set_reg_value(can_tdlxr, data->data_fields.data1, CAN_TDLxR_DATA1_Msk, CAN_TDLxR_DATA1_Pos);
+    set_reg_value(can_tdlxr, data->data_fields.data2, CAN_TDLxR_DATA2_Msk, CAN_TDLxR_DATA2_Pos);
+    set_reg_value(can_tdlxr, data->data_fields.data3, CAN_TDLxR_DATA3_Msk, CAN_TDLxR_DATA3_Pos);
+    set_reg_value(can_tdhxr, data->data_fields.data4, CAN_TDHxR_DATA4_Msk, CAN_TDHxR_DATA4_Pos);
+    set_reg_value(can_tdhxr, data->data_fields.data5, CAN_TDHxR_DATA5_Msk, CAN_TDHxR_DATA5_Pos);
+    set_reg_value(can_tdhxr, data->data_fields.data6, CAN_TDHxR_DATA6_Msk, CAN_TDHxR_DATA6_Pos);
+    set_reg_value(can_tdhxr, data->data_fields.data7, CAN_TDHxR_DATA7_Msk, CAN_TDHxR_DATA7_Pos);
 
-    /* Transmitting a frame is done by:
-     * - setting the TIxR register, to set frame metadatas
-     * - setting the TDTxR register, setting frame timestamping
-     * - setting the TDLxR & TDHxR with data given by upper layer (up to 8 bytes) */
 
+    /* requesting transmission */
+    set_reg_bits(can_tixr, CAN_TIxR_TXRQ_Msk);
 
+    errcode = MBED_ERROR_NONE;
 err:
     return errcode;
 }
@@ -752,7 +765,7 @@ mbed_error_t can_receive(const __in  can_context_t *ctx,
     header->RTR = get_reg_value(can_rixr, CAN_RIxR_RTR_Msk, CAN_RIxR_RTR_Pos);
     header->DLC = (uint8_t)get_reg_value(can_rdtxr, CAN_RDTxR_DLC_Msk, CAN_RDTxR_DLC_Pos);
     header->FMI = (uint8_t)get_reg_value(can_rdtxr, CAN_RDTxR_FMI_Msk, CAN_RDTxR_FMI_Pos);
-    header->ts = (uint8_t)get_reg_value(can_rdtxr, CAN_RDTxR_TIME_Msk, CAN_RDTxR_TIME_Pos);
+    header->gt = (uint8_t)get_reg_value(can_rdtxr, CAN_RDTxR_TIME_Msk, CAN_RDTxR_TIME_Pos);
     /* get data */
     data->data_fields.data0 = (uint8_t)get_reg_value(can_rdlxr, CAN_RDLxR_DATA0_Msk, CAN_RDLxR_DATA0_Pos);
     data->data_fields.data1 = (uint8_t)get_reg_value(can_rdlxr, CAN_RDLxR_DATA1_Msk, CAN_RDLxR_DATA1_Pos);
