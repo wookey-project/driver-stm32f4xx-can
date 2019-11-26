@@ -304,6 +304,29 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
         case CAN_PORT_1:
            ctx->can_dev.address = can1_dev_infos.address;
            ctx->can_dev.size = can1_dev_infos.size;
+	   ctx->can_dev.gpio_num = 2;
+	   ctx->can_dev.gpios[0].kref.port = can1_dev_infos.gpios[CAN1_TD].port;
+	   ctx->can_dev.gpios[0].kref.pin = can1_dev_infos.gpios[CAN1_TD].pin;
+	   ctx->can_dev.gpios[0].mask =
+		   GPIO_MASK_SET_MODE | GPIO_MASK_SET_TYPE | GPIO_MASK_SET_SPEED |
+		   GPIO_MASK_SET_PUPD | GPIO_MASK_SET_AFR;
+	   ctx->can_dev.gpios[0].mode = GPIO_PIN_ALTERNATE_MODE;
+	   ctx->can_dev.gpios[0].speed = GPIO_PIN_VERY_HIGH_SPEED;
+	   ctx->can_dev.gpios[0].type = GPIO_PIN_OTYPER_PP;
+	   ctx->can_dev.gpios[0].pupd = GPIO_NOPULL;
+	   ctx->can_dev.gpios[0].afr = GPIO_AF_AF9; /* AF for CAN1 & CAN2 */
+
+	   ctx->can_dev.gpios[1].kref.port = can1_dev_infos.gpios[CAN1_RD].port;
+	   ctx->can_dev.gpios[1].kref.pin = can1_dev_infos.gpios[CAN1_RD].pin;
+	   ctx->can_dev.gpios[1].mask =
+		   GPIO_MASK_SET_MODE | GPIO_MASK_SET_TYPE | GPIO_MASK_SET_SPEED |
+		   GPIO_MASK_SET_PUPD | GPIO_MASK_SET_AFR;
+	   ctx->can_dev.gpios[1].mode = GPIO_PIN_ALTERNATE_MODE;
+	   ctx->can_dev.gpios[1].type = GPIO_PIN_OTYPER_PP;
+	   ctx->can_dev.gpios[1].pupd = GPIO_NOPULL;
+	   ctx->can_dev.gpios[1].speed = GPIO_PIN_VERY_HIGH_SPEED;
+	   ctx->can_dev.gpios[1].afr = GPIO_AF_AF9; /* AF for CAN1 & CAN2 */
+
            if (ctx->access == CAN_ACCESS_POLL) {
                ctx->can_dev.irq_num = 0;
            } else {
@@ -745,6 +768,7 @@ mbed_error_t can_receive(const __in  can_context_t *ctx,
                 errcode = MBED_ERROR_NOTREADY;
                 goto err;
             }
+	    break;
         default:
             errcode = MBED_ERROR_INVPARAM;
             goto err;
