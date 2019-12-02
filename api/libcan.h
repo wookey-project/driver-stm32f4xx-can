@@ -1,3 +1,8 @@
+/*
+ * The Controller Area Network (CAN) bus can be accessed through Basic Extended
+ * CAN (bxCAN) peripheral. see STM32F4xx RM0090 manual.
+*/
+
 #ifndef LIBCAN_H_
 #define LIBCAN_H_
 
@@ -75,9 +80,9 @@ typedef enum {
    CAN_PORT_1 = 1,
    CAN_PORT_2 = 2,
    CAN_PORT_3 = 3
-} can_id_t;
+} can_port_t;
 
-mbed_error_t can_event(can_event_t event, can_id_t id, uint32_t errcode);
+mbed_error_t can_event(can_event_t event, can_port_t id, uint32_t errcode);
 
 
 /**********************************************************************/
@@ -121,8 +126,8 @@ typedef enum {
 /* a CAN msg uses one id format between standard or extended, depending on IDE
  * field */
 typedef union {
-    uint16_t stdid;
-    uint32_t extid;
+    uint16_t std;
+    uint32_t ext;
 } u_can_msg_id_t;
 
 typedef enum {
@@ -183,7 +188,7 @@ typedef union {
  */
 typedef struct {
     /* about infos set at declare time by uper layer **/
-    can_id_t      id;              /*< CAN port identifier */
+    can_port_t    id;              /*< CAN port identifier */
     can_mode_t    mode;            /*< CAN mode (normal, silent (debug) or loopback (debug)) */
     can_access_t  access;            /*< CAN access mode (poll or IT based) */
     bool          timetrigger;     /* Time triggered communication mode */

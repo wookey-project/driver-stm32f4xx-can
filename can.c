@@ -28,7 +28,7 @@ static void can_IRQHandler(uint8_t irq,
 
     uint32_t err = CAN_ERROR_NONE;
 
-    can_id_t canid;
+    can_port_t canid;
 
     /* get back CAN state (depending on current IRQ) */
     switch (irq) {
@@ -304,6 +304,29 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
         case CAN_PORT_1:
            ctx->can_dev.address = can1_dev_infos.address;
            ctx->can_dev.size = can1_dev_infos.size;
+	   ctx->can_dev.gpio_num = 2;
+	   ctx->can_dev.gpios[0].kref.port = can1_dev_infos.gpios[CAN1_TD].port;
+	   ctx->can_dev.gpios[0].kref.pin = can1_dev_infos.gpios[CAN1_TD].pin;
+	   ctx->can_dev.gpios[0].mask =
+		   GPIO_MASK_SET_MODE | GPIO_MASK_SET_TYPE | GPIO_MASK_SET_SPEED |
+		   GPIO_MASK_SET_PUPD | GPIO_MASK_SET_AFR;
+	   ctx->can_dev.gpios[0].mode = GPIO_PIN_ALTERNATE_MODE;
+	   ctx->can_dev.gpios[0].speed = GPIO_PIN_VERY_HIGH_SPEED;
+	   ctx->can_dev.gpios[0].type = GPIO_PIN_OTYPER_PP;
+	   ctx->can_dev.gpios[0].pupd = GPIO_NOPULL;
+	   ctx->can_dev.gpios[0].afr = GPIO_AF_AF9; /* AF for CAN1 & CAN2 */
+
+	   ctx->can_dev.gpios[1].kref.port = can1_dev_infos.gpios[CAN1_RD].port;
+	   ctx->can_dev.gpios[1].kref.pin = can1_dev_infos.gpios[CAN1_RD].pin;
+	   ctx->can_dev.gpios[1].mask =
+		   GPIO_MASK_SET_MODE | GPIO_MASK_SET_TYPE | GPIO_MASK_SET_SPEED |
+		   GPIO_MASK_SET_PUPD | GPIO_MASK_SET_AFR;
+	   ctx->can_dev.gpios[1].mode = GPIO_PIN_ALTERNATE_MODE;
+	   ctx->can_dev.gpios[1].type = GPIO_PIN_OTYPER_PP;
+	   ctx->can_dev.gpios[1].pupd = GPIO_NOPULL;
+	   ctx->can_dev.gpios[1].speed = GPIO_PIN_VERY_HIGH_SPEED;
+	   ctx->can_dev.gpios[1].afr = GPIO_AF_AF9; /* AF for CAN1 & CAN2 */
+
            if (ctx->access == CAN_ACCESS_POLL) {
                ctx->can_dev.irq_num = 0;
            } else {
@@ -668,9 +691,9 @@ mbed_error_t can_xmit(const __in  can_context_t *ctx,
     }
     /* about the header */
     if (header->IDE == CAN_ID_STD) {
-        set_reg_value(can_tixr, header->id.stdid, CAN_TIxR_STID_Msk,  CAN_TIxR_STID_Pos);
+        set_reg_value(can_tixr, header->id.std, CAN_TIxR_STID_Msk,  CAN_TIxR_STID_Pos);
     } else if (header->IDE == CAN_ID_EXT) {
-        set_reg_value(can_tixr, header->id.extid, CAN_TIxR_EXID_Msk,  CAN_TIxR_EXID_Pos);
+        set_reg_value(can_tixr, header->id.ext, CAN_TIxR_EXID_Msk,  CAN_TIxR_EXID_Pos);
     }else {
         /* invalid header format */
         errcode = MBED_ERROR_INVPARAM;
@@ -745,6 +768,7 @@ mbed_error_t can_receive(const __in  can_context_t *ctx,
                 errcode = MBED_ERROR_NOTREADY;
                 goto err;
             }
+	    break;
         default:
             errcode = MBED_ERROR_INVPARAM;
             goto err;
@@ -757,10 +781,10 @@ mbed_error_t can_receive(const __in  can_context_t *ctx,
     header->IDE = get_reg_value(can_rixr, CAN_RIxR_IDE_Msk,  CAN_RIxR_IDE_Pos);
     if (header->IDE == 0x0) {
         /* standard Identifier */
-        header->id.stdid = (uint16_t)get_reg_value(can_rixr, CAN_RIxR_STID_Msk, CAN_RIxR_STID_Pos);
+        header->id.std = (uint16_t)get_reg_value(can_rixr, CAN_RIxR_STID_Msk, CAN_RIxR_STID_Pos);
     } else {
         /* extended identifier */
-        header->id.stdid = get_reg_value(can_rixr, CAN_RIxR_EXID_Msk, CAN_RIxR_EXID_Pos);
+        header->id.std = get_reg_value(can_rixr, CAN_RIxR_EXID_Msk, CAN_RIxR_EXID_Pos);
     }
     header->RTR = get_reg_value(can_rixr, CAN_RIxR_RTR_Msk, CAN_RIxR_RTR_Pos);
     header->DLC = (uint8_t)get_reg_value(can_rdtxr, CAN_RDTxR_DLC_Msk, CAN_RDTxR_DLC_Pos);
