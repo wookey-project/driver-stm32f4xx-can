@@ -28,7 +28,7 @@ static void can_IRQHandler(uint8_t irq,
 
     uint32_t err = CAN_ERROR_NONE;
 
-    can_id_t canid;
+    can_port_t canid;
 
     /* get back CAN state (depending on current IRQ) */
     switch (irq) {
@@ -691,9 +691,9 @@ mbed_error_t can_xmit(const __in  can_context_t *ctx,
     }
     /* about the header */
     if (header->IDE == CAN_ID_STD) {
-        set_reg_value(can_tixr, header->id.stdid, CAN_TIxR_STID_Msk,  CAN_TIxR_STID_Pos);
+        set_reg_value(can_tixr, header->id.std, CAN_TIxR_STID_Msk,  CAN_TIxR_STID_Pos);
     } else if (header->IDE == CAN_ID_EXT) {
-        set_reg_value(can_tixr, header->id.extid, CAN_TIxR_EXID_Msk,  CAN_TIxR_EXID_Pos);
+        set_reg_value(can_tixr, header->id.ext, CAN_TIxR_EXID_Msk,  CAN_TIxR_EXID_Pos);
     }else {
         /* invalid header format */
         errcode = MBED_ERROR_INVPARAM;
@@ -781,10 +781,10 @@ mbed_error_t can_receive(const __in  can_context_t *ctx,
     header->IDE = get_reg_value(can_rixr, CAN_RIxR_IDE_Msk,  CAN_RIxR_IDE_Pos);
     if (header->IDE == 0x0) {
         /* standard Identifier */
-        header->id.stdid = (uint16_t)get_reg_value(can_rixr, CAN_RIxR_STID_Msk, CAN_RIxR_STID_Pos);
+        header->id.std = (uint16_t)get_reg_value(can_rixr, CAN_RIxR_STID_Msk, CAN_RIxR_STID_Pos);
     } else {
         /* extended identifier */
-        header->id.stdid = get_reg_value(can_rixr, CAN_RIxR_EXID_Msk, CAN_RIxR_EXID_Pos);
+        header->id.std = get_reg_value(can_rixr, CAN_RIxR_EXID_Msk, CAN_RIxR_EXID_Pos);
     }
     header->RTR = get_reg_value(can_rixr, CAN_RIxR_RTR_Msk, CAN_RIxR_RTR_Pos);
     header->DLC = (uint8_t)get_reg_value(can_rdtxr, CAN_RDTxR_DLC_Msk, CAN_RDTxR_DLC_Pos);
