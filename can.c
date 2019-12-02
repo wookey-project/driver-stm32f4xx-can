@@ -304,7 +304,7 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
         case CAN_PORT_1:
            ctx->can_dev.address = can1_dev_infos.address;
            ctx->can_dev.size = can1_dev_infos.size;
-	   ctx->can_dev.gpio_num = 2;
+	         ctx->can_dev.gpio_num = 2;
 	   ctx->can_dev.gpios[0].kref.port = can1_dev_infos.gpios[CAN1_TD].port;
 	   ctx->can_dev.gpios[0].kref.pin = can1_dev_infos.gpios[CAN1_TD].pin;
 	   ctx->can_dev.gpios[0].mask =
@@ -461,13 +461,6 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
     if (!ctx) {
         return MBED_ERROR_INVPARAM;
     }
-    /* exiting sleep mode */
-    clear_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_SLEEP_Msk);
-
-    /* waiting for end of sleep acknowledgment */
-    do {
-        check = *r_CANx_MSR(ctx->id) & CAN_MSR_SLAK_Msk;
-    } while (check != 0);
 
     /* request initialization */
     set_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_INRQ_Msk);
@@ -551,7 +544,10 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
             set_reg(r_CANx_BTR(ctx->id), 0x0, CAN_BTR_LBKM);
             break;
     }
+
     /* FIXME: todo, TS1, TS2, prescaler to other than default value */
+    *r_CANx_BTR(ctx->id)=(*r_CANx_BTR(ctx->id) & ~0x1FF)|20;
+
 
     /* update current state */
     ctx->state = CAN_STATE_READY;
@@ -610,6 +606,20 @@ mbed_error_t can_start(__inout can_context_t *ctx)
     do {
         check = *r_CANx_MSR(ctx->id) & CAN_MSR_INAK_Msk;
     } while (check == 0);
+
+    /* enable CAN interrupts if in IT mode */
+    if (ctx->access == CAN_ACCESS_IT) {
+        uint32_t ier_val = 0;
+        ier_val = CAN_IER_ERRIE_Msk |
+                  CAN_IER_BOFIE_Msk |
+                  CAN_IER_FOVIE0_Msk |
+                  CAN_IER_FOVIE1_Msk |
+                  CAN_IER_FFIE0_Msk |
+                  CAN_IER_FFIE1_Msk |
+                  CAN_IER_FMPIE0_Msk |
+                  CAN_IER_TMEIE_Msk;
+        write_reg_value(r_CANx_IER(ctx->id), ier_val);
+    }
     ctx->state = CAN_STATE_STARTED;
     return MBED_ERROR_NONE;
 }
