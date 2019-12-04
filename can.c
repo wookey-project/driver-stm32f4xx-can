@@ -14,6 +14,9 @@
  * local static functions & helpers
  */
 
+static volatile uint32_t nb_CAN_IRQ_Handler = 0;
+
+
 /*
  * This is the driver local IRQ Handler for all the CAN device interrupts.
  * This handler get back required infos from the kernel posthooks and the
@@ -23,15 +26,19 @@ static void can_IRQHandler(uint8_t irq,
                            uint32_t status,
                            uint32_t data)
 {
+    nb_CAN_IRQ_Handler++;
+
     uint32_t msr, ier, esr; /* status and control */
     uint32_t tsr = 0, rf0r = 0, rf1r = 0; /* tx/rx */
 
     uint32_t err = CAN_ERROR_NONE;
 
     can_port_t canid;
+    /* IRQ numbers, seen from the core, start at 0x10 (after exceptions) */
+    uint32_t interrupt = irq + 0x10;
 
     /* get back CAN state (depending on current IRQ) */
-    switch (irq) {
+    switch (interrupt) {
         case CAN1_TX_IRQ:
             ier = read_reg_value(_r_CANx_IER(1));
             esr = read_reg_value(_r_CANx_ESR(1));
@@ -118,7 +125,7 @@ static void can_IRQHandler(uint8_t irq,
             /* Transmit (or abort) performed on Mbox1, cleared by PH */
             if ((tsr & CAN_TSR_TXOK1_Msk) != 0) {
                 /* Transfer complete */
-                can_event(CAN_EVENT_TX_MBOX0_COMPLETE, canid, err);
+                can_event(CAN_EVENT_TX_MBOX1_COMPLETE, canid, err);
             } else {
                 /* Transfer aborted, get error */
                 if ((tsr & CAN_TSR_ALST1_Msk) != 0) {
@@ -448,6 +455,7 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
             break;
         default:
             break;
+
     }
     errcode = MBED_ERROR_NONE;
 end:
@@ -462,10 +470,11 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
         return MBED_ERROR_INVPARAM;
     }
 
-    /* request initialization */
-    set_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_INRQ_Msk);
+    /* Awake (exit sleep mode) and request initialization, cf RM00090, 32.4.3 */
+    clear_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_SLEEP_Msk);
+    set_reg_bits  (r_CANx_MCR(ctx->id), CAN_MCR_INRQ_Msk);
 
-    /* waiting for init mode acknowledgment */
+    /* waiting for init mode acknowledgment, i.e. that the INAK bit be set */
     do {
         check = *r_CANx_MSR(ctx->id) & CAN_MSR_INAK_Msk;
     } while (check == 0);
@@ -545,9 +554,10 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
             break;
     }
 
-    /* FIXME: todo, TS1, TS2, prescaler to other than default value */
-    *r_CANx_BTR(ctx->id)=(*r_CANx_BTR(ctx->id) & ~0x1FF)|20;
-
+    /* FIXME: todo, TS1, TS2, prescaler to other than default value
+     * We divide the frequency by 41 + 1 = 42.
+     */
+    *r_CANx_BTR(ctx->id)=(*r_CANx_BTR(ctx->id) & ~0x1FF)|41;
 
     /* update current state */
     ctx->state = CAN_STATE_READY;
@@ -602,10 +612,10 @@ mbed_error_t can_start(__inout can_context_t *ctx)
 
     clear_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_INRQ_Msk);
 
-    /* waiting for init mode acknowledgment */
+    /* waiting for Normal mode acknowledgment, i.e. that INAK bit be cleared */
     do {
         check = *r_CANx_MSR(ctx->id) & CAN_MSR_INAK_Msk;
-    } while (check == 0);
+    } while (check != 0);
 
     /* enable CAN interrupts if in IT mode */
     if (ctx->access == CAN_ACCESS_IT) {
@@ -617,6 +627,7 @@ mbed_error_t can_start(__inout can_context_t *ctx)
                   CAN_IER_FFIE0_Msk |
                   CAN_IER_FFIE1_Msk |
                   CAN_IER_FMPIE0_Msk |
+                  CAN_IER_FMPIE1_Msk |
                   CAN_IER_TMEIE_Msk;
         write_reg_value(r_CANx_IER(ctx->id), ier_val);
     }
@@ -679,19 +690,19 @@ mbed_error_t can_xmit(const __in  can_context_t *ctx,
         *mbox = CAN_MBOX_0;
         can_tdlxr = r_CANx_TDL0R(ctx->id);
         can_tdhxr = r_CANx_TDH0R(ctx->id);
-        can_tixr = r_CANx_TI0R(ctx->id);
+        can_tixr  = r_CANx_TI0R (ctx->id);
         can_tdtxr = r_CANx_TDT0R(ctx->id);
     } else if (tme & 0x2) {
         *mbox = CAN_MBOX_1;
         can_tdlxr = r_CANx_TDL1R(ctx->id);
         can_tdhxr = r_CANx_TDH1R(ctx->id);
-        can_tixr = r_CANx_TI1R(ctx->id);
+        can_tixr  = r_CANx_TI1R (ctx->id);
         can_tdtxr = r_CANx_TDT1R(ctx->id);
     } else if (tme & 0x4) {
         *mbox = CAN_MBOX_2;
         can_tdlxr = r_CANx_TDL2R(ctx->id);
         can_tdhxr = r_CANx_TDH2R(ctx->id);
-        can_tixr = r_CANx_TI2R(ctx->id);
+        can_tixr  = r_CANx_TI2R (ctx->id);
         can_tdtxr = r_CANx_TDT2R(ctx->id);
     } else {
         /* should not be executed with the tme == 0x0 check */
@@ -713,6 +724,8 @@ mbed_error_t can_xmit(const __in  can_context_t *ctx,
     if (header->TGT == true) {
         /* global time transmission requested */
         set_reg_bits(can_tdtxr, CAN_TDTxR_TGT_Msk);
+    } else {
+        clear_reg_bits(can_tdtxr, CAN_TDTxR_TGT_Msk);
     }
 
     set_reg_value(can_tdlxr, data->data_fields.data0, CAN_TDLxR_DATA0_Msk, CAN_TDLxR_DATA0_Pos);
