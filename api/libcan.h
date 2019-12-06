@@ -190,13 +190,13 @@ typedef struct {
     /* about infos set at declare time by uper layer **/
     can_port_t    id;              /*< CAN port identifier */
     can_mode_t    mode;            /*< CAN mode (normal, silent (debug) or loopback (debug)) */
-    can_access_t  access;            /*< CAN access mode (poll or IT based) */
+    can_access_t  access;          /*< CAN access mode (poll or IT based) */
     bool          timetrigger;     /* Time triggered communication mode */
-    bool          autobusoff;          /* auto bus-off mgmt */
+    bool          autobusoff;      /* auto bus-off mgmt */
     bool          autowakeup;      /* wake up from sleep on event */
     bool          autoretrans;     /* auto retransmission */
-    bool          rxfifolocked;    /* set Rx Fifo locked mode */
-    bool          txfifoprio;      /* set Tx Fifo priority */
+    bool          rxfifolocked;    /* set Rx Fifo locked against overrun */
+    bool          txfifoprio;      /* set Tx Fifo in chronological order */
     /* about info set at declare and init time by the driver */
     device_t      can_dev;         /*< CAN associated kernel structure */
     can_state_t   state;           /*< current state */
@@ -212,10 +212,10 @@ mbed_error_t can_initialize(__inout can_context_t *ctx);
 /* release device */
 mbed_error_t can_release(__inout can_context_t *ctx);
 
-/* set filters */
+/* set filters (can be done outside initialization) */
 mbed_error_t can_set_filters(__in can_context_t *ctx);
 
-/* start the CAN (required after initialization) */
+/* start the CAN (required after initialization or filters setting) */
 mbed_error_t can_start(__inout can_context_t *ctx);
 
 /* Stop the CAN */

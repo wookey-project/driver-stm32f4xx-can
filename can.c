@@ -506,7 +506,7 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
     }
 
     if (ctx->autoretrans) {
-        /* Auto wake up mode */
+        /* Auto retransmission mode */
         clear_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_NART_Msk);
     } else {
         /* or not...  */
@@ -522,10 +522,11 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
     }
 
     if (ctx->txfifoprio) {
-        /* TX Fifo priority */
+        /* TX Fifo priority is driven by : */
+        /*  1. The requests chronological order  */
         set_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_TXFP_Msk);
     } else {
-        /* or not... */
+        /* 0. The identifier field of the message */
         clear_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_TXFP_Msk);
     }
 
@@ -557,7 +558,27 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
     /* FIXME: todo, TS1, TS2, prescaler to other than default value
      * We divide the frequency by 41 + 1 = 42.
      */
-    *r_CANx_BTR(ctx->id)=(*r_CANx_BTR(ctx->id) & ~0x1FF)|41;
+     set_reg(r_CANx_BTR(ctx->id), 41, CAN_BTR_BRP);
+
+    /* Enter filter initialization mode, only for the master : CAN1 */
+    if (ctx->id == 1) {
+        set_reg_bits(r_CAN_FMR, CAN_FMR_FINIT_Msk);
+        /* Half of the filters (14) for CAN1 and half for CAN2 (Reset value)*/
+        set_reg(r_CAN_FMR, 14, CAN_FMR_CAN2SB);
+        /* Simple filtering :
+         * - everything for CAN1, on FIFO 0.
+         * - nothing for CAN2.
+         */
+         *r_CAN_FM1R  = 0; // Two 32bits registers in mask mode for all.
+         *r_CAN_FS1R  = 1; // Filter #0 : a single 32-bits scale configuration.
+         *r_CAN_FFA1R = 0; // All filters are assigned to FIFO 0.
+         *r_CAN_FA1R  = 0; // No filter activated !
+         *r_CAN_F0R1  = 0; // Filter #0, bit mask at 0 = Don't care !
+         *r_CAN_F0R2  = 0; // idem.
+         *r_CAN_FA1R  = 1; // Filter #0 is activated !
+         /* Quit Filter initialization */
+         clear_reg_bits(r_CAN_FMR, CAN_FMR_FINIT_Msk);
+    }
 
     /* update current state */
     ctx->state = CAN_STATE_READY;
@@ -585,7 +606,7 @@ mbed_error_t can_release(__inout can_context_t *ctx)
     return MBED_ERROR_NONE;
 }
 
-/* set filters */
+/* set filters (can be done outside initialization mode)*/
 mbed_error_t can_set_filters(__in can_context_t *ctx)
 {
     volatile can_filters_table_t * filter_table;
@@ -594,28 +615,30 @@ mbed_error_t can_set_filters(__in can_context_t *ctx)
     if (ctx->id == 1) {
         filter_table = r_CAN1_FxRy();
     } else if (ctx->id == 2) {
-        filter_table = r_CAN1_FxRy();
+        filter_table = r_CAN2_FxRy();
     } else {
         err = MBED_ERROR_INVPARAM;
     }
+
+    /* TODO Waiting for FACTx bits to be cleared */
+
+    /* Enter filter initialization */
+    set_reg_bits(r_CAN_FMR, CAN_FMR_FINIT_Msk);
+
+    /* Quit Filter initialization */
+    clear_reg_bits(r_CAN_FMR, CAN_FMR_FINIT_Msk);
+
     /* TODO handle communication filters */
     return err;
 }
 
-/* start the CAN (required after initialization) */
+/* start the CAN (required after initialization or filters setting) */
 mbed_error_t can_start(__inout can_context_t *ctx)
 {
     int check = 0;
     if (ctx->state != CAN_STATE_READY) {
         return MBED_ERROR_INVSTATE;
     }
-
-    clear_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_INRQ_Msk);
-
-    /* waiting for Normal mode acknowledgment, i.e. that INAK bit be cleared */
-    do {
-        check = *r_CANx_MSR(ctx->id) & CAN_MSR_INAK_Msk;
-    } while (check != 0);
 
     /* enable CAN interrupts if in IT mode */
     if (ctx->access == CAN_ACCESS_IT) {
@@ -631,6 +654,15 @@ mbed_error_t can_start(__inout can_context_t *ctx)
                   CAN_IER_TMEIE_Msk;
         write_reg_value(r_CANx_IER(ctx->id), ier_val);
     }
+
+    /* Request Normal mode */
+    clear_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_INRQ_Msk);
+
+    /* waiting for Normal mode acknowledgment, i.e. that INAK bit be cleared */
+    do {
+        check = *r_CANx_MSR(ctx->id) & CAN_MSR_INAK_Msk;
+    } while (check != 0);
+
     ctx->state = CAN_STATE_STARTED;
     return MBED_ERROR_NONE;
 }
@@ -771,8 +803,8 @@ mbed_error_t can_receive(const __in  can_context_t *ctx,
     /* is current fifo empty ? */
     switch (fifo) {
         case CAN_FIFO_0:
-            can_rfxr = r_CANx_RF0R(ctx->id);
-            can_rixr = r_CANx_RI0R(ctx->id);
+            can_rfxr  = r_CANx_RF0R(ctx->id);
+            can_rixr  = r_CANx_RI0R(ctx->id);
             can_rdtxr = r_CANx_RDT0R(ctx->id);
             can_rdlxr = r_CANx_RDL0R(ctx->id);
             can_rdhxr = r_CANx_RDH0R(ctx->id);
@@ -782,8 +814,8 @@ mbed_error_t can_receive(const __in  can_context_t *ctx,
             }
             break;
         case CAN_FIFO_1:
-            can_rfxr = r_CANx_RF1R(ctx->id);
-            can_rixr = r_CANx_RI1R(ctx->id);
+            can_rfxr  = r_CANx_RF1R(ctx->id);
+            can_rixr  = r_CANx_RI1R(ctx->id);
             can_rdtxr = r_CANx_RDT1R(ctx->id);
             can_rdlxr = r_CANx_RDL1R(ctx->id);
             can_rdhxr = r_CANx_RDH1R(ctx->id);
@@ -797,22 +829,24 @@ mbed_error_t can_receive(const __in  can_context_t *ctx,
             goto err;
             break;
     }
-    /* let's read from current FIFO */
-    /* get header */
 
-    /* mask and pos are the same for all FIFOs */
+    /* let's read the message from mailbox 0 of current FIFO */
+    /* mask and pos are the same for all FIFOs  */
+
+    /* get header */
     header->IDE = get_reg_value(can_rixr, CAN_RIxR_IDE_Msk,  CAN_RIxR_IDE_Pos);
     if (header->IDE == 0x0) {
         /* standard Identifier */
         header->id.std = (uint16_t)get_reg_value(can_rixr, CAN_RIxR_STID_Msk, CAN_RIxR_STID_Pos);
     } else {
         /* extended identifier */
-        header->id.std = get_reg_value(can_rixr, CAN_RIxR_EXID_Msk, CAN_RIxR_EXID_Pos);
+        header->id.ext = get_reg_value(can_rixr, CAN_RIxR_EXID_Msk, CAN_RIxR_EXID_Pos);
     }
     header->RTR = get_reg_value(can_rixr, CAN_RIxR_RTR_Msk, CAN_RIxR_RTR_Pos);
     header->DLC = (uint8_t)get_reg_value(can_rdtxr, CAN_RDTxR_DLC_Msk, CAN_RDTxR_DLC_Pos);
     header->FMI = (uint8_t)get_reg_value(can_rdtxr, CAN_RDTxR_FMI_Msk, CAN_RDTxR_FMI_Pos);
     header->gt = (uint8_t)get_reg_value(can_rdtxr, CAN_RDTxR_TIME_Msk, CAN_RDTxR_TIME_Pos);
+
     /* get data */
     data->data_fields.data0 = (uint8_t)get_reg_value(can_rdlxr, CAN_RDLxR_DATA0_Msk, CAN_RDLxR_DATA0_Pos);
     data->data_fields.data1 = (uint8_t)get_reg_value(can_rdlxr, CAN_RDLxR_DATA1_Msk, CAN_RDLxR_DATA1_Pos);
@@ -822,7 +856,8 @@ mbed_error_t can_receive(const __in  can_context_t *ctx,
     data->data_fields.data5 = (uint8_t)get_reg_value(can_rdhxr, CAN_RDHxR_DATA5_Msk, CAN_RDHxR_DATA5_Pos);
     data->data_fields.data6 = (uint8_t)get_reg_value(can_rdhxr, CAN_RDHxR_DATA6_Msk, CAN_RDHxR_DATA6_Pos);
     data->data_fields.data7 = (uint8_t)get_reg_value(can_rdhxr, CAN_RDHxR_DATA7_Msk, CAN_RDHxR_DATA7_Pos);
-    /* release fifo */
+
+    /* release head (mailbox 0) of current FIFO */
     set_reg_bits(can_rfxr, CAN_RF0R_RFOM0_Msk);
 
 err:
