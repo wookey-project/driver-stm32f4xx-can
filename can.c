@@ -137,16 +137,16 @@ static void can_IRQHandler(uint8_t irq,
       case CAN1_RX0_IRQ:
       case CAN2_RX0_IRQ:
         /* Rx FIFO0 overrun */
-        if ((rfr & CAN_RF0R_FOVR0_Msk) != 0) {
+        if ((rfr & CAN_RFxR_FOVRx_Msk) != 0) {
           err |= CAN_ERROR_RX_FIFO0_OVERRRUN;
         }
         /* Rx FIFO0 full */
-        if ((rfr & CAN_RF0R_FULL0_Msk) != 0) {
+        if ((rfr & CAN_RFxR_FULLx_Msk) != 0) {
           err |= CAN_ERROR_RX_FIFO0_FULL;
           can_event(CAN_EVENT_RX_FIFO0_FULL, canid, err);
         }
         /* Rx FIFO0 msg pending */
-        if ((rfr & CAN_RF0R_FMP0_Msk) != 0) {
+        if ((rfr & CAN_RFxR_FMPx_Msk) != 0) {
           can_event(CAN_EVENT_RX_FIFO0_MSG_PENDING, canid, err);
         }
         break;
@@ -154,16 +154,16 @@ static void can_IRQHandler(uint8_t irq,
       case CAN1_RX1_IRQ:
       case CAN2_RX1_IRQ:
         /* Rx FIFO1 overrun */
-        if ((rfr & CAN_RF1R_FOVR1_Msk) != 0) {
+        if ((rfr & CAN_RFxR_FOVRx_Msk) != 0) {
           err |= CAN_ERROR_RX_FIFO1_OVERRRUN;
         }
         /* Rx FIFO1 full */
-        if ((rfr & CAN_RF1R_FULL1_Msk) != 0) {
+        if ((rfr & CAN_RFxR_FULLx_Msk) != 0) {
           err |= CAN_ERROR_RX_FIFO1_FULL;
           can_event(CAN_EVENT_RX_FIFO1_FULL, canid, err);
         }
         /* Rx FIFO1 msg pending */
-        if ((rfr & CAN_RF1R_FMP1_Msk) != 0) {
+        if ((rfr & CAN_RFxR_FMPx_Msk) != 0) {
           can_event(CAN_EVENT_RX_FIFO1_MSG_PENDING, canid, err);
         }
         break; /* Receive case */
@@ -315,16 +315,16 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
                ctx->can_dev.irqs[0].posthook.action[3].write.offset = CAN_TSR;
                ctx->can_dev.irqs[0].posthook.action[3].write.value  = 0;
                ctx->can_dev.irqs[0].posthook.action[3].write.mask   = 0x1 << 8;
-                /* clear TSR: RQCP2 */
+               /* clear TSR: RQCP2 */
                ctx->can_dev.irqs[0].posthook.action[4].instr = IRQ_PH_WRITE;
                ctx->can_dev.irqs[0].posthook.action[4].write.offset = CAN_TSR;
                ctx->can_dev.irqs[0].posthook.action[4].write.value  = 0;
                ctx->can_dev.irqs[0].posthook.action[4].write.mask   = 0x1 << 16;
 
 
-               /* RX0 interrupt is the consequence of RF0R register bits being
-                * set, see STRM00090, chap 32.8   (CAN Interrupts)    fig. 348
-                *                     chap 32.9.5 (CAN registers map) table 184 */
+              /* RX0 interrupt is the consequence of RF0R register bits being
+               * set, see STRM00090, chap 32.8   (CAN Interrupts)    fig. 348
+               *                     chap 32.9.5 (CAN registers map) table 184 */
                ctx->can_dev.irqs[1].irq  = CAN1_RX0_IRQ;
                ctx->can_dev.irqs[1].handler = can_IRQHandler;
                ctx->can_dev.irqs[1].mode = IRQ_ISR_STANDARD;
@@ -336,19 +336,22 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
 
                ctx->can_dev.irqs[1].posthook.action[1].instr = IRQ_PH_READ;
                ctx->can_dev.irqs[1].posthook.action[1].read.offset = CAN_RF0R;
-               /* We need to mask in the kernel the sources of the RX0 interrupt
-                * related to the mailboxes, until the user task gets the message
-                * and releases the mailbox by setting RF0R:RFOM0.
-                * To do that we clear IER:FMPIE0 and it will be set by the task.*/
+              /* We need to mask in the kernel the sources of the RX0 interrupt
+               * related to the mailboxes, until the user task gets the message
+               * and releases the mailbox by setting RF0R:RFOM0.
+               * To do that we clear IER:FMPIE0 and it will be set by the task.*/
                ctx->can_dev.irqs[1].posthook.action[2].instr = IRQ_PH_WRITE;
                ctx->can_dev.irqs[1].posthook.action[2].write.offset = CAN_IER;
                ctx->can_dev.irqs[1].posthook.action[2].write.value  = 0;
-               ctx->can_dev.irqs[1].posthook.action[2].write.mask   = CAN_IER_FMPIE0_Msk;
+               ctx->can_dev.irqs[1].posthook.action[2].write.mask   =
+                                CAN_IER_FMPIE0_Msk;
                /* But we still need to acknowledge RF0R: FULL0, FOVR0. */
                ctx->can_dev.irqs[1].posthook.action[3].instr = IRQ_PH_WRITE;
                ctx->can_dev.irqs[1].posthook.action[3].write.offset = CAN_RF0R;
                ctx->can_dev.irqs[1].posthook.action[3].write.value  = 0;
-               ctx->can_dev.irqs[1].posthook.action[3].write.mask   = 0x38; /* DEBUG : should be 0x18 !! */
+               ctx->can_dev.irqs[1].posthook.action[3].write.mask   = //0x18;
+                                CAN_RFxR_FULLx_Msk | CAN_RFxR_FOVRx_Msk;
+
 
 
                /* RX1 interrupt is the consequence of RF1R register bits being
@@ -372,12 +375,14 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
                ctx->can_dev.irqs[2].posthook.action[2].instr = IRQ_PH_WRITE;
                ctx->can_dev.irqs[2].posthook.action[2].write.offset = CAN_IER;
                ctx->can_dev.irqs[2].posthook.action[2].write.value  = 0;
-               ctx->can_dev.irqs[2].posthook.action[2].write.mask   = 0x10;
+               ctx->can_dev.irqs[2].posthook.action[2].write.mask   =
+                                CAN_IER_FMPIE1_Msk;
                /* But we still need to acknowledge RF1R: FULL1, FOVR1. */
                ctx->can_dev.irqs[2].posthook.action[3].instr = IRQ_PH_WRITE;
                ctx->can_dev.irqs[2].posthook.action[3].write.offset = CAN_RF1R;
                ctx->can_dev.irqs[2].posthook.action[3].write.value  = 0;
-               ctx->can_dev.irqs[2].posthook.action[3].write.mask   = 0x18;
+               ctx->can_dev.irqs[2].posthook.action[3].write.mask   =
+                                CAN_RFxR_FULLx_Msk | CAN_RFxR_FOVRx_Msk;
 
 
                /* The Status Change SCE interrupt is the consequence of MSR
@@ -777,7 +782,7 @@ mbed_error_t can_receive(const __in  can_context_t *ctx,
         errcode = MBED_ERROR_INVSTATE;
         goto err;
     }
-    /* is current fifo empty ? */
+
     switch (fifo) {
         case CAN_FIFO_0:
             can_rfxr  = r_CANx_RF0R(ctx->id);
@@ -785,10 +790,6 @@ mbed_error_t can_receive(const __in  can_context_t *ctx,
             can_rdtxr = r_CANx_RDT0R(ctx->id);
             can_rdlxr = r_CANx_RDL0R(ctx->id);
             can_rdhxr = r_CANx_RDH0R(ctx->id);
-            if ((*can_rfxr & CAN_RF0R_FMP0_Msk) == 0U) {
-                errcode = MBED_ERROR_NOTREADY;
-                goto err;
-            }
             break;
         case CAN_FIFO_1:
             can_rfxr  = r_CANx_RF1R(ctx->id);
@@ -796,17 +797,17 @@ mbed_error_t can_receive(const __in  can_context_t *ctx,
             can_rdtxr = r_CANx_RDT1R(ctx->id);
             can_rdlxr = r_CANx_RDL1R(ctx->id);
             can_rdhxr = r_CANx_RDH1R(ctx->id);
-            if ((*can_rfxr & CAN_RF1R_FMP1_Msk) == 0U) {
-                errcode = MBED_ERROR_NOTREADY;
-                goto err;
-            }
-	    break;
+	          break;
         default:
             errcode = MBED_ERROR_INVPARAM;
             goto err;
             break;
     }
-
+    /* is current fifo empty ? */
+    if ((*can_rfxr & CAN_RFxR_FMPx_Msk) == 0U) {
+        errcode = MBED_ERROR_NOTREADY;
+        goto err;
+    }
     /* let's read the message from mailbox 0 of current FIFO */
     /* mask and pos are the same for all FIFOs  */
 
@@ -822,7 +823,7 @@ mbed_error_t can_receive(const __in  can_context_t *ctx,
     header->RTR = get_reg_value(can_rixr, CAN_RIxR_RTR_Msk, CAN_RIxR_RTR_Pos);
     header->DLC = (uint8_t)get_reg_value(can_rdtxr, CAN_RDTxR_DLC_Msk, CAN_RDTxR_DLC_Pos);
     header->FMI = (uint8_t)get_reg_value(can_rdtxr, CAN_RDTxR_FMI_Msk, CAN_RDTxR_FMI_Pos);
-    header->gt = (uint8_t)get_reg_value(can_rdtxr, CAN_RDTxR_TIME_Msk, CAN_RDTxR_TIME_Pos);
+    header->gt  = (uint8_t)get_reg_value(can_rdtxr, CAN_RDTxR_TIME_Msk, CAN_RDTxR_TIME_Pos);
 
     /* get data */
     data->data_fields.data0 = (uint8_t)get_reg_value(can_rdlxr, CAN_RDLxR_DATA0_Msk, CAN_RDLxR_DATA0_Pos);
@@ -834,9 +835,14 @@ mbed_error_t can_receive(const __in  can_context_t *ctx,
     data->data_fields.data6 = (uint8_t)get_reg_value(can_rdhxr, CAN_RDHxR_DATA6_Msk, CAN_RDHxR_DATA6_Pos);
     data->data_fields.data7 = (uint8_t)get_reg_value(can_rdhxr, CAN_RDHxR_DATA7_Msk, CAN_RDHxR_DATA7_Pos);
 
-    /* release head (mailbox 0) of current FIFO */
-    set_reg_bits(can_rfxr, CAN_RF0R_RFOM0_Msk);
-
+    /* release head (mailbox #0) of current FIFO */
+    set_reg_bits(can_rfxr, CAN_RFxR_RFOMx_Msk);
+    /* restore interruptions on the FIFO to get another frame */
+    if (fifo == CAN_FIFO_0) {
+       set_reg_bits(r_CANx_IER(ctx->id), CAN_IER_FMPIE0_Msk);
+    } else {
+       set_reg_bits(r_CANx_IER(ctx->id), CAN_IER_FMPIE1_Msk);
+    }
 err:
     return errcode;
 }

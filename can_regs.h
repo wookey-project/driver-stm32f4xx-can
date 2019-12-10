@@ -102,28 +102,18 @@
 #define CAN_RF0R 0x00C
 #define _r_CANx_RF0R(x) REG_ADDR(CAN ## x ## _BASE + CAN_RF0R)
 
-#define CAN_RF0R_FMP0_Pos 0U
-#define CAN_RF0R_FMP0_Msk ((uint32_t)3 << CAN_RF0R_FMP0_Pos)
-#define CAN_RF0R_FULL0_Pos 3U
-#define CAN_RF0R_FULL0_Msk ((uint32_t)1 << CAN_RF0R_FULL0_Pos)
-#define CAN_RF0R_FOVR0_Pos 4U
-#define CAN_RF0R_FOVR0_Msk ((uint32_t)1 << CAN_RF0R_FOVR0_Pos)
-#define CAN_RF0R_RFOM0_Pos 5U
-#define CAN_RF0R_RFOM0_Msk ((uint32_t)1 << CAN_RF0R_RFOM0_Pos)
-
+#define CAN_RFxR_FMPx_Pos 0U
+#define CAN_RFxR_FMPx_Msk ((uint32_t)3 << CAN_RFxR_FMPx_Pos)
+#define CAN_RFxR_FULLx_Pos 3U
+#define CAN_RFxR_FULLx_Msk ((uint32_t)1 << CAN_RFxR_FULLx_Pos)
+#define CAN_RFxR_FOVRx_Pos 4U
+#define CAN_RFxR_FOVRx_Msk ((uint32_t)1 << CAN_RFxR_FOVRx_Pos)
+#define CAN_RFxR_RFOMx_Pos 5U
+#define CAN_RFxR_RFOMx_Msk ((uint32_t)1 << CAN_RFxR_RFOMx_Pos)
 
 /* RF0R Receive FIFO 1 Register */
 #define CAN_RF1R 0x010
 #define _r_CANx_RF1R(x) REG_ADDR(CAN ## x ## _BASE + CAN_RF1R)
-
-#define CAN_RF1R_FMP1_Pos 0U
-#define CAN_RF1R_FMP1_Msk ((uint32_t)3 << CAN_RF1R_FMP1_Pos)
-#define CAN_RF1R_FULL1_Pos 3U
-#define CAN_RF1R_FULL1_Msk ((uint32_t)1 << CAN_RF1R_FULL1_Pos)
-#define CAN_RF1R_FOVR1_Pos 4U
-#define CAN_RF1R_FOVR1_Msk ((uint32_t)1 << CAN_RF1R_FOVR1_Pos)
-#define CAN_RF1R_RFOM1_Pos 5U
-#define CAN_RF1R_RFOM1_Msk ((uint32_t)1 << CAN_RF1R_RFOM1_Pos)
 
 
 /* IER Interrupt Enable Register */
@@ -303,7 +293,7 @@
 
 
 /* RDL0R Receive FIFO 0 mailbox Data Low Register */
-#define CAN_RDL0R 0x1B0
+#define CAN_RDL0R 0x1B8
 #define _r_CANx_RDL0R(x) REG_ADDR(CAN ## x ## _BASE + CAN_RDL0R)
 
 #define CAN_RDLxR_DATA0_Pos 0U
@@ -370,7 +360,7 @@
 /* FFA1R is a table of 28 bits holding scale FIFO assignment
  * configuration for each of 28 filters (0 = FIFO0, 1 = FIFO1) */
 
-#define CAN_FA1R 0x214
+#define CAN_FA1R 0x21C
 #define r_CAN_FA1R REG_ADDR(CAN1_BASE + CAN_FA1R)
 /* FA1R is a table of 28 bit-enable state for each of the
  * 28 filters (0=not active, 1=active) */
