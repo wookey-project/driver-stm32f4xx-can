@@ -7,6 +7,7 @@
 #define CAN2_BASE 0x40006800
 
 /* MCR Master Control Register */
+#define CAN_MCR 0
 #define _r_CANx_MCR(x)  REG_ADDR(CAN ## x ## _BASE)
 
 #define CAN_MCR_INRQ_Pos 0U
@@ -32,7 +33,8 @@
 
 
 /* MSR Master Status Register */
-#define _r_CANx_MSR(x)  REG_ADDR(CAN ## x ## _BASE + 0x004)
+#define CAN_MSR 0x004
+#define _r_CANx_MSR(x)  REG_ADDR(CAN ## x ## _BASE + CAN_MSR)
 
 #define CAN_MSR_INAK_Pos 0U
 #define CAN_MSR_INAK_Msk ((uint32_t)1 << CAN_MSR_INAK_Pos)
@@ -55,7 +57,8 @@
 
 
 /* TSR Transmit Status Register */
-#define _r_CANx_TSR(x)  REG_ADDR(CAN ## x ## _BASE + 0x008)
+#define CAN_TSR 0x008
+#define _r_CANx_TSR(x)  REG_ADDR(CAN ## x ## _BASE + CAN_TSR)
 
 #define CAN_TSR_RQCP0_Pos 0U
 #define CAN_TSR_RQCP0_Msk ((uint32_t)1 << CAN_TSR_RQCP0_Pos)
@@ -96,7 +99,8 @@
 
 
 /* RF0R Receive FIFO 0 Register */
-#define _r_CANx_RF0R(x) REG_ADDR(CAN ## x ## _BASE + 0x00C)
+#define CAN_RF0R 0x00C
+#define _r_CANx_RF0R(x) REG_ADDR(CAN ## x ## _BASE + CAN_RF0R)
 
 #define CAN_RF0R_FMP0_Pos 0U
 #define CAN_RF0R_FMP0_Msk ((uint32_t)3 << CAN_RF0R_FMP0_Pos)
@@ -109,7 +113,8 @@
 
 
 /* RF0R Receive FIFO 1 Register */
-#define _r_CANx_RF1R(x) REG_ADDR(CAN ## x ## _BASE + 0x010)
+#define CAN_RF1R 0x010
+#define _r_CANx_RF1R(x) REG_ADDR(CAN ## x ## _BASE + CAN_RF1R)
 
 #define CAN_RF1R_FMP1_Pos 0U
 #define CAN_RF1R_FMP1_Msk ((uint32_t)3 << CAN_RF1R_FMP1_Pos)
@@ -122,7 +127,8 @@
 
 
 /* IER Interrupt Enable Register */
-#define _r_CANx_IER(x)  REG_ADDR(CAN ## x ## _BASE + 0x014)
+#define CAN_IER 0x014
+#define _r_CANx_IER(x)  REG_ADDR(CAN ## x ## _BASE + CAN_IER)
 
 #define CAN_IER_TMEIE_Pos 0U
 #define CAN_IER_TMEIE_Msk ((uint32_t)1 << CAN_IER_TMEIE_Pos)
@@ -155,7 +161,8 @@
 
 
 /* ESR Error Status Register */
-#define _r_CANx_ESR(x)  REG_ADDR(CAN ## x ## _BASE + 0x018)
+#define CAN_ESR 0x018
+#define _r_CANx_ESR(x)  REG_ADDR(CAN ## x ## _BASE + CAN_ESR)
 
 #define CAN_ESR_EWGF_Pos 0U
 #define CAN_ESR_EWGF_Msk ((uint32_t)1 << CAN_ESR_EWGF_Pos)
@@ -170,7 +177,8 @@
 
 
 /* BTR Bit Timing Register */
-#define _r_CANx_BTR(x)  REG_ADDR(CAN ## x ## _BASE + 0x01C)
+#define CAN_BTR 0x01C
+#define _r_CANx_BTR(x)  REG_ADDR(CAN ## x ## _BASE + CAN_BTR)
 
 #define CAN_BTR_BRP_Pos 0U
 #define CAN_BTR_BRP_Msk ((uint32_t)0x3ff << CAN_BTR_BRP_Pos)
@@ -190,7 +198,8 @@
  */
 
 /* TI0R Tx mailbox 0 Identifier Register */
-#define _r_CANx_TI0R(x)  REG_ADDR(CAN ## x ## _BASE + 0x180)
+#define CAN_TI0R 0x180
+#define _r_CANx_TI0R(x)  REG_ADDR(CAN ## x ## _BASE + CAN_TI0R)
 
 #define CAN_TIxR_TXRQ_Pos 0U
 #define CAN_TIxR_TXRQ_Msk ((uint32_t)0x1 << CAN_TIxR_TXRQ_Pos)
@@ -205,7 +214,8 @@
 
 
 /* TDT0R Tx mailbox 0 Data length control and Time stamp Register */
-#define _r_CANx_TDT0R(x) REG_ADDR(CAN ## x ## _BASE + 0x184)
+#define CAN_TDT0R 0x184
+#define _r_CANx_TDT0R(x) REG_ADDR(CAN ## x ## _BASE + CAN_TDT0R)
 
 #define CAN_TDTxR_DLC_Pos 0U
 #define CAN_TDTxR_DLC_Msk ((uint32_t)0xf << CAN_TDTxR_DLC_Pos)
@@ -216,7 +226,8 @@
 
 
 /* TDL0R Tx mailbox 0 Data Low Register */
-#define _r_CANx_TDL0R(x) REG_ADDR(CAN ## x ## _BASE + 0x188)
+#define CAN_TDL0R 0x188
+#define _r_CANx_TDL0R(x) REG_ADDR(CAN ## x ## _BASE + CAN_TDL0R)
 
 #define CAN_TDLxR_DATA0_Pos 0U
 #define CAN_TDLxR_DATA0_Msk ((uint32_t)0xff << CAN_TDLxR_DATA0_Pos)
@@ -229,7 +240,8 @@
 
 
 /* TDL0R Tx mailbox 0 Data High Register */
-#define _r_CANx_TDH0R(x) REG_ADDR(CAN ## x ## _BASE + 0x18C)
+#define CAN_TDH0R 0x18C
+#define _r_CANx_TDH0R(x) REG_ADDR(CAN ## x ## _BASE + CAN_TDH0R)
 
 #define CAN_TDHxR_DATA4_Pos 0U
 #define CAN_TDHxR_DATA4_Msk ((uint32_t)0xff << CAN_TDHxR_DATA4_Pos)
@@ -241,23 +253,32 @@
 #define CAN_TDHxR_DATA7_Msk ((uint32_t)0xff << CAN_TDHxR_DATA7_Pos)
 
 /* Tx mailbox 1 : same registers */
-#define _r_CANx_TI1R(x)  REG_ADDR(CAN ## x ## _BASE + 0x190)
-#define _r_CANx_TDT1R(x) REG_ADDR(CAN ## x ## _BASE + 0x194)
-#define _r_CANx_TDL1R(x) REG_ADDR(CAN ## x ## _BASE + 0x198)
-#define _r_CANx_TDH1R(x) REG_ADDR(CAN ## x ## _BASE + 0x19C)
+#define CAN_TI1R  0x190
+#define CAN_TDT1R 0x194
+#define CAN_TDL1R 0x198
+#define CAN_TDH1R 0x19C
+#define _r_CANx_TI1R(x)  REG_ADDR(CAN ## x ## _BASE + CAN_TI1R)
+#define _r_CANx_TDT1R(x) REG_ADDR(CAN ## x ## _BASE + CAN_TDT1R)
+#define _r_CANx_TDL1R(x) REG_ADDR(CAN ## x ## _BASE + CAN_TDL1R)
+#define _r_CANx_TDH1R(x) REG_ADDR(CAN ## x ## _BASE + CAN_TDH1R)
 
 /* Tx mailbox 2 : same registers */
-#define _r_CANx_TI2R(x)  REG_ADDR(CAN ## x ## _BASE + 0x1A0)
-#define _r_CANx_TDT2R(x) REG_ADDR(CAN ## x ## _BASE + 0x1A4)
-#define _r_CANx_TDL2R(x) REG_ADDR(CAN ## x ## _BASE + 0x1A8)
-#define _r_CANx_TDH2R(x) REG_ADDR(CAN ## x ## _BASE + 0x1AC)
+#define CAN_TI2R  0x1A0
+#define CAN_TDT2R 0x1A4
+#define CAN_TDL2R 0x1A8
+#define CAN_TDH2R 0x1AC
+#define _r_CANx_TI2R(x)  REG_ADDR(CAN ## x ## _BASE + CAN_TI2R)
+#define _r_CANx_TDT2R(x) REG_ADDR(CAN ## x ## _BASE + CAN_TDT2R)
+#define _r_CANx_TDL2R(x) REG_ADDR(CAN ## x ## _BASE + CAN_TDL2R)
+#define _r_CANx_TDH2R(x) REG_ADDR(CAN ## x ## _BASE + CAN_TDH2R)
 
 /*
  * Two Rx FIFO (of three mailboxes each)
  */
 
 /* RI0R Receive FIFO 0 mailbox Identifier Register */
-#define _r_CANx_RI0R(x)  REG_ADDR(CAN ## x ## _BASE + 0x1B0)
+#define CAN_RI0R 0x1B0
+#define _r_CANx_RI0R(x)  REG_ADDR(CAN ## x ## _BASE + CAN_RI0R)
 
 #define CAN_RIxR_RTR_Pos 1U
 #define CAN_RIxR_RTR_Msk ((uint32_t)0x1 << CAN_RIxR_RTR_Pos)
@@ -270,7 +291,8 @@
 
 
 /* RDT0R Receive FIFO 0 mailbox Data length control and Time stamp Register */
-#define _r_CANx_RDT0R(x) REG_ADDR(CAN ## x ## _BASE + 0x1B4)
+#define CAN_RDT0R 0x1B4
+#define _r_CANx_RDT0R(x) REG_ADDR(CAN ## x ## _BASE + CAN_RDT0R)
 
 #define CAN_RDTxR_DLC_Pos 0U
 #define CAN_RDTxR_DLC_Msk ((uint32_t)0xf << CAN_RDTxR_DLC_Pos)
@@ -281,7 +303,8 @@
 
 
 /* RDL0R Receive FIFO 0 mailbox Data Low Register */
-#define _r_CANx_RDL0R(x) REG_ADDR(CAN ## x ## _BASE + 0x1B8)
+#define CAN_RDL0R 0x1B0
+#define _r_CANx_RDL0R(x) REG_ADDR(CAN ## x ## _BASE + CAN_RDL0R)
 
 #define CAN_RDLxR_DATA0_Pos 0U
 #define CAN_RDLxR_DATA0_Msk ((uint32_t)0xff << CAN_RDLxR_DATA0_Pos)
@@ -294,7 +317,8 @@
 
 
 /* RDH0R Receive FIFO 0 mailbox Data High Register */
-#define _r_CANx_RDH0R(x) REG_ADDR(CAN ## x ## _BASE + 0x1BC)
+#define CAN_RDH0R 0x1BC
+#define _r_CANx_RDH0R(x) REG_ADDR(CAN ## x ## _BASE + CAN_RDH0R)
 
 #define CAN_RDHxR_DATA4_Pos 0U
 #define CAN_RDHxR_DATA4_Msk ((uint32_t)0xff << CAN_RDHxR_DATA4_Pos)
@@ -307,10 +331,14 @@
 
 
 /* Receive FIFO 1 : same mailbox registers */
-#define _r_CANx_RI1R(x)  REG_ADDR(CAN ## x ## _BASE + 0x1C0)
-#define _r_CANx_RDT1R(x) REG_ADDR(CAN ## x ## _BASE + 0x1C4)
-#define _r_CANx_RDL1R(x) REG_ADDR(CAN ## x ## _BASE + 0x1C8)
-#define _r_CANx_RDH1R(x) REG_ADDR(CAN ## x ## _BASE + 0x1CC)
+#define CAN_RI1R  0x1C0
+#define CAN_RDT1R 0x1C4
+#define CAN_RDL1R 0x1C8
+#define CAN_RDH1R 0x1CC
+#define _r_CANx_RI1R(x)  REG_ADDR(CAN ## x ## _BASE + CAN_RI1R)
+#define _r_CANx_RDT1R(x) REG_ADDR(CAN ## x ## _BASE + CAN_RDT1R)
+#define _r_CANx_RDL1R(x) REG_ADDR(CAN ## x ## _BASE + CAN_RDL1R)
+#define _r_CANx_RDH1R(x) REG_ADDR(CAN ## x ## _BASE + CAN_RDH1R)
 
 /*
  * The registers from offset 0x200 to 0x31C are present only
@@ -318,32 +346,32 @@
  */
 
 /* FMR Filter Master Register */
-#define r_CAN_FMR REG_ADDR(CAN1_BASE + 0x200)
+#define CAN_FMR 0x200
+#define r_CAN_FMR REG_ADDR(CAN1_BASE + CAN_FMR)
 
 #define CAN_FMR_FINIT_Pos 0U
 #define CAN_FMR_FINIT_Msk ((uint32_t)0x1 << CAN_FMR_FINIT_Pos)
 #define CAN_FMR_CAN2SB_Pos 8U
 #define CAN_FMR_CAN2SB_Msk ((uint32_t)0x3f << CAN_FMR_CAN2SB_Pos)
 
-
-#define r_CAN_FM1R REG_ADDR(CAN1_BASE + 0x204)
-
+#define CAN_FM1R 0x204
+#define r_CAN_FM1R REG_ADDR(CAN1_BASE + CAN_FM1R)
 /* FM1R is a table of 28 bits holding configuration for each
  * of 28 filters (0 = Two 32bits registers are in mask mode,
  *                1 = Two 32bits registers are in list mode) */
 
-#define r_CAN_FS1R REG_ADDR(CAN1_BASE + 0x20C)
-
+#define CAN_FS1R 0x20C
+#define r_CAN_FS1R REG_ADDR(CAN1_BASE + CAN_FS1R)
 /* FS1R is a table of 28 bits holding scale configuration for each
  * of 28 filters (0=dual 16bits, 1=single 32bits) */
 
-#define r_CAN_FFA1R REG_ADDR(CAN1_BASE + 0x214)
-
+#define CAN_FFA1R 0x214
+#define r_CAN_FFA1R REG_ADDR(CAN1_BASE + CAN_FFA1R)
 /* FFA1R is a table of 28 bits holding scale FIFO assignment
  * configuration for each of 28 filters (0 = FIFO0, 1 = FIFO1) */
 
-#define r_CAN_FA1R REG_ADDR(CAN1_BASE + 0x21C)
-
+#define CAN_FA1R 0x214
+#define r_CAN_FA1R REG_ADDR(CAN1_BASE + CAN_FA1R)
 /* FA1R is a table of 28 bit-enable state for each of the
  * 28 filters (0=not active, 1=active) */
 

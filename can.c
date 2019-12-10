@@ -1,3 +1,4 @@
+#define _LIBCAN_
 #include "api/libcan.h"
 #include "can_regs.h"
 #include "libc/syscall.h"
@@ -14,9 +15,6 @@
  * local static functions & helpers
  */
 
-static volatile uint32_t nb_CAN_IRQ_Handler = 0;
-
-
 /*
  * This is the driver local IRQ Handler for all the CAN device interrupts.
  * This handler get back required infos from the kernel posthooks and the
@@ -26,10 +24,8 @@ static void can_IRQHandler(uint8_t irq,
                            uint32_t status,
                            uint32_t data)
 {
-    nb_CAN_IRQ_Handler++;
-
-    uint32_t msr, ier, esr; /* status and control */
-    uint32_t tsr = 0, rf0r = 0, rf1r = 0; /* tx/rx */
+    uint32_t msr = 0, esr = 0; /* status and control */
+    uint32_t tsr = 0, rfr = 0; /* tx/rx */
 
     uint32_t err = CAN_ERROR_NONE;
 
@@ -38,71 +34,52 @@ static void can_IRQHandler(uint8_t irq,
     uint32_t interrupt = irq + 0x10;
 
     /* get back CAN state (depending on current IRQ) */
+    msr = status;
+    nb_CAN_IRQ_Handler = nb_CAN_IRQ_Handler + 1;
     switch (interrupt) {
         case CAN1_TX_IRQ:
-            ier = read_reg_value(_r_CANx_IER(1));
-            esr = read_reg_value(_r_CANx_ESR(1));
-            msr = status;
             tsr = data;
             canid = 1;
             break;
         case CAN1_RX0_IRQ:
-            ier = read_reg_value(_r_CANx_IER(1));
-            esr = read_reg_value(_r_CANx_ESR(1));
-            msr = status;
-            rf0r = data;
+            rfr = data;
             canid = 1;
             break;
         case CAN1_RX1_IRQ:
-            ier = read_reg_value(_r_CANx_IER(1));
-            esr = read_reg_value(_r_CANx_ESR(1));
-            msr = status;
-            rf1r = data;
+            rfr = data;
             canid = 1;
             break;
         case CAN1_SCE_IRQ:
-            ier = read_reg_value(_r_CANx_IER(1));
-            msr = status;
             esr = data;
             canid = 1;
             break;
         case CAN2_TX_IRQ:
-            ier = read_reg_value(_r_CANx_IER(2));
-            esr = read_reg_value(_r_CANx_ESR(2));
-            msr = status;
             tsr = data;
             canid = 2;
             break;
         case CAN2_RX0_IRQ:
-            ier = read_reg_value(_r_CANx_IER(2));
-            esr = read_reg_value(_r_CANx_ESR(2));
-            msr = status;
-            rf0r = data;
+            rfr = data;
             canid = 2;
             break;
         case CAN2_RX1_IRQ:
-            ier = read_reg_value(_r_CANx_IER(2));
-            esr = read_reg_value(_r_CANx_ESR(2));
-            msr = status;
-            rf1r = data;
+            rfr = data;
             canid = 2;
             break;
         case CAN2_SCE_IRQ:
-            ier = read_reg_value(_r_CANx_IER(2));
-            msr = status;
             esr = data;
             canid = 2;
             break;
-
         default:
             goto err;
             break;
     }
 
     /* now handling current interrupt */
-    /********** handling transmit case ***************/
-    /* IT on Xmit */
-    if ((ier & CAN_IER_TMEIE_Msk) != 0) {
+    switch(interrupt) {
+
+              /********** handling transmit case ***************/
+      case CAN1_TX_IRQ:
+      case CAN2_TX_IRQ:
         /* Tx Mbox 0 */
         if ((tsr & CAN_TSR_RQCP0_Msk) != 0) {
             /* Transmit (or abort) performed on Mbox0, cleared by PH */
@@ -154,121 +131,96 @@ static void can_IRQHandler(uint8_t irq,
                 can_event(CAN_EVENT_TX_MBOX2_ABORT, canid, err);
             }
         }
-    }
-    /********** handling receive case ***************/
-    /* Rx FIFO0 overrun */
-    if ((ier & CAN_IER_FOVIE0_Msk) != 0) {
-        if ((rf0r & CAN_RF0R_FOVR0_Msk) != 0) {
-            err |= CAN_ERROR_RX_FIFO0_OVERRRUN;
+        break; /* Transmit case */
 
-            /* clear FOV0 by setting 1 into it */
-            set_reg_bits(r_CANx_RF0R(canid), CAN_RF0R_FOVR0_Msk);
+              /********** handling receive case ***************/
+      case CAN1_RX0_IRQ:
+      case CAN2_RX0_IRQ:
+        /* Rx FIFO0 overrun */
+        if ((rfr & CAN_RF0R_FOVR0_Msk) != 0) {
+          err |= CAN_ERROR_RX_FIFO0_OVERRRUN;
         }
-    }
-    /* Rx FIFO0 full */
-    if ((ier & CAN_IER_FFIE0_Msk) != 0) {
-        if ((rf0r & CAN_RF0R_FULL0_Msk) != 0) {
-            err |= CAN_ERROR_RX_FIFO0_FULL;
+        /* Rx FIFO0 full */
+        if ((rfr & CAN_RF0R_FULL0_Msk) != 0) {
+          err |= CAN_ERROR_RX_FIFO0_FULL;
+          can_event(CAN_EVENT_RX_FIFO0_FULL, canid, err);
+        }
+        /* Rx FIFO0 msg pending */
+        if ((rfr & CAN_RF0R_FMP0_Msk) != 0) {
+          can_event(CAN_EVENT_RX_FIFO0_MSG_PENDING, canid, err);
+        }
+        break;
 
-            /* clear FULL0 by setting 1 into it */
-            set_reg_bits(r_CANx_RF0R(canid), CAN_RF0R_FULL0_Msk);
-            can_event(CAN_EVENT_RX_FIFO0_FULL, canid, err);
+      case CAN1_RX1_IRQ:
+      case CAN2_RX1_IRQ:
+        /* Rx FIFO1 overrun */
+        if ((rfr & CAN_RF1R_FOVR1_Msk) != 0) {
+          err |= CAN_ERROR_RX_FIFO1_OVERRRUN;
         }
-    }
-    /* Rx FIFO0 msg pending */
-    if ((ier & CAN_IER_FMPIE0_Msk) != 0) {
-        if ((rf0r & CAN_RF0R_FMP0_Msk) != 0) {
-            /* clear FULL0 by setting 1 into it */
-            can_event(CAN_EVENT_RX_FIFO0_MSG_PENDING, canid, err);
+        /* Rx FIFO1 full */
+        if ((rfr & CAN_RF1R_FULL1_Msk) != 0) {
+          err |= CAN_ERROR_RX_FIFO1_FULL;
+          can_event(CAN_EVENT_RX_FIFO1_FULL, canid, err);
         }
-    }
-    /* Rx FIFO1 overrun */
-    if ((ier & CAN_IER_FOVIE1_Msk) != 0) {
-        if ((rf0r & CAN_RF1R_FOVR1_Msk) != 0) {
-            err |= CAN_ERROR_RX_FIFO1_OVERRRUN;
+        /* Rx FIFO1 msg pending */
+        if ((rfr & CAN_RF1R_FMP1_Msk) != 0) {
+          can_event(CAN_EVENT_RX_FIFO1_MSG_PENDING, canid, err);
+        }
+        break; /* Receive case */
 
-            /* clear FOV1 by setting 1 into it */
-            set_reg_bits(r_CANx_RF1R(canid), CAN_RF1R_FOVR1_Msk);
-        }
-    }
-    /* Rx FIFO1 full */
-    if ((ier & CAN_IER_FFIE1_Msk) != 0) {
-        if ((rf0r & CAN_RF1R_FULL1_Msk) != 0) {
-            err |= CAN_ERROR_RX_FIFO1_FULL;
 
-            /* clear FULL1 by setting 1 into it */
-            set_reg_bits(r_CANx_RF1R(canid), CAN_RF1R_FULL1_Msk);
-            can_event(CAN_EVENT_RX_FIFO1_FULL, canid, err);
-        }
-    }
-    /* Rx FIFO1 msg pending */
-    if ((ier & CAN_IER_FMPIE1_Msk) != 0) {
-        if ((rf0r & CAN_RF1R_FMP1_Msk) != 0) {
-            /* clear FULL0 by setting 1 into it */
-            can_event(CAN_EVENT_RX_FIFO1_MSG_PENDING, canid, err);
-        }
-    }
-    /********** handling status change **************/
-    /* Wakeup */
-    if ((ier & CAN_IER_WKUIE_Msk) != 0) {
+              /********** handling status change **************/
+      case CAN1_SCE_IRQ:
+      case CAN2_SCE_IRQ:
+        /* Wakeup */
         if ((msr & CAN_MSR_WKUI_Msk) != 0) {
             /* MSR:WKUI already acknowledge by PH */
             can_event(CAN_EVENT_WAKUP_FROM_RX_MSG, canid, err);
         }
-    }
-    /* Sleep */
-    if ((ier & CAN_IER_SLKIE_Msk) != 0) {
+        /* Sleep */
         if ((msr & CAN_MSR_SLAKI_Msk) != 0) {
             /* MSR:SLAKI already acknowledged by PH */
             can_event(CAN_EVENT_SLEEP, canid, err);
         }
-    }
-    /* Errors */
-    if ((ier & CAN_IER_ERRIE_Msk) != 0) {
+        /* Errors */
         if ((msr & CAN_MSR_ERRI_Msk) != 0) {
-            /* calculating error mask */
-            if ((ier & CAN_IER_EWGIE_Msk) != 0) {
-                if ((esr & CAN_ESR_EWGF_Msk) != 0) {
-                    err |= CAN_ERROR_ERR_WARNING;
-                }
+            /* MSR:ERRI already acknowledged by PH */
+
+            /* calculating error mask. ESR has already been acknowledged by PH */
+            if ((esr & CAN_ESR_EWGF_Msk) != 0) {
+              err |= CAN_ERROR_ERR_WARNING_LIMIT;
             }
-            if ((ier & CAN_IER_EPVIE_Msk) != 0) {
-                if ((esr & CAN_ESR_EPVF_Msk) != 0) {
-                    err |= CAN_ERROR_ERR_PASV;
-                }
+            if ((esr & CAN_ESR_EPVF_Msk) != 0) {
+              err |= CAN_ERROR_ERR_PASSIVE_LIMIT;
             }
-            if ((ier & CAN_IER_BOFIE_Msk) != 0) {
-                if ((esr & CAN_ESR_BOFF_Msk) != 0) {
-                    err |= CAN_ERROR_ERR_BUS_OFF;
-                }
+            if ((esr & CAN_ESR_BOFF_Msk) != 0) {
+              err |= CAN_ERROR_ERR_BUS_OFF;
             }
-            if ((ier & CAN_IER_LECIE_Msk) != 0) {
-                if ((esr & CAN_ESR_LEC_Msk) != 0) {
-                    uint32_t lec = get_reg_value((uint32_t*)esr, CAN_ESR_LEC_Msk, CAN_ESR_LEC_Pos);
-                    switch (lec) {
-                        case 0x0:
-                            err |= CAN_ERROR_ERR_LEC_STUFF;
-                            break;
-                        case 0x1:
-                            err |= CAN_ERROR_ERR_LEC_FROM;
-                            break;
-                        case 0x3:
-                            err |= CAN_ERROR_ERR_LEC_ACK;
-                            break;
-                        case 0x4:
-                            err |= CAN_ERROR_ERR_LEC_BR;
-                            break;
-                        case 0x5:
-                            err |= CAN_ERROR_ERR_LEC_BD;
-                            break;
-                        case 0x6:
-                            err |= CAN_ERROR_ERR_LEC_CRC;
-                            break;
-                        default:
-                            break;
-                    }
-                    clear_reg_bits(r_CANx_ESR(canid), CAN_ESR_LEC_Msk);
-                }
+
+            if ((esr & CAN_ESR_LEC_Msk) != 0) {
+               uint32_t lec = get_reg_value((uint32_t*)esr, CAN_ESR_LEC_Msk, CAN_ESR_LEC_Pos);
+               switch (lec) {
+                  case 0x0:
+                     err |= CAN_ERROR_ERR_LEC_STUFF;
+                     break;
+                   case 0x1:
+                     err |= CAN_ERROR_ERR_LEC_FROM;
+                     break;
+                   case 0x3:
+                     err |= CAN_ERROR_ERR_LEC_ACK;
+                     break;
+                   case 0x4:
+                      err |= CAN_ERROR_ERR_LEC_BR;
+                      break;
+                   case 0x5:
+                       err |= CAN_ERROR_ERR_LEC_BD;
+                       break;
+                  case 0x6:
+                       err |= CAN_ERROR_ERR_LEC_CRC;
+                       break;
+                  default:
+                       break;
+               }
             }
             if (err != CAN_ERROR_NONE) {
                 can_event(CAN_EVENT_ERROR, canid, err);
@@ -338,96 +290,121 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
                ctx->can_dev.irq_num = 0;
            } else {
                ctx->can_dev.irq_num = 4;
-               ctx->can_dev.irqs[0].handler = can_IRQHandler;
+              /* TX interrupt is the consequence of RQCPx bits being set,
+               * in register TSR.
+               * see ST RM00090, chap 32.8   (CAN Interrupts)    fig.  348
+               *                 chap 32.9.5 (CAN registers map) table 184 */
                ctx->can_dev.irqs[0].irq = CAN1_TX_IRQ;
+               ctx->can_dev.irqs[0].handler = can_IRQHandler;
                ctx->can_dev.irqs[0].mode = IRQ_ISR_STANDARD;
-
-               /* RX0 interrupt is the consequence of RF0R register bit set,
-                * see ST RM00090, chap 32.8 (CAN Interrupts) fig. 348 */
-               ctx->can_dev.irqs[0].posthook.status = 0x0004; /* MSR */
-               ctx->can_dev.irqs[0].posthook.data   = 0x0008; /* TSR */
+               ctx->can_dev.irqs[0].posthook.status = CAN_MSR;
+               ctx->can_dev.irqs[0].posthook.data   = CAN_TSR;
 
                ctx->can_dev.irqs[0].posthook.action[0].instr = IRQ_PH_READ;
-               ctx->can_dev.irqs[0].posthook.action[0].read.offset = 0x0004;
+               ctx->can_dev.irqs[0].posthook.action[0].read.offset = CAN_MSR;
 
                ctx->can_dev.irqs[0].posthook.action[1].instr = IRQ_PH_READ;
-               ctx->can_dev.irqs[0].posthook.action[1].read.offset = 0x0008;
-
+               ctx->can_dev.irqs[0].posthook.action[1].read.offset = CAN_TSR;
+                /* clear TSR: RQCP0 */
                ctx->can_dev.irqs[0].posthook.action[2].instr = IRQ_PH_WRITE;
-               ctx->can_dev.irqs[0].posthook.action[2].write.offset = 0x0008;
-               ctx->can_dev.irqs[0].posthook.action[2].write.value  = 0x1;
-               ctx->can_dev.irqs[0].posthook.action[2].write.mask   = 0x1 << 0; /* clear TSR: RQCP0 */
+               ctx->can_dev.irqs[0].posthook.action[2].write.offset = CAN_TSR;
+               ctx->can_dev.irqs[0].posthook.action[2].write.value  = 0;
+               ctx->can_dev.irqs[0].posthook.action[2].write.mask   = 0x1 << 0;
+               /* clear TSR: RQCP1 */
                ctx->can_dev.irqs[0].posthook.action[3].instr = IRQ_PH_WRITE;
-               ctx->can_dev.irqs[0].posthook.action[3].write.offset = 0x0008;
-               ctx->can_dev.irqs[0].posthook.action[3].write.value  = 0x1;
-               ctx->can_dev.irqs[0].posthook.action[3].write.mask   = 0x1 << 8; /* clear TSR: RQCP1 */
+               ctx->can_dev.irqs[0].posthook.action[3].write.offset = CAN_TSR;
+               ctx->can_dev.irqs[0].posthook.action[3].write.value  = 0;
+               ctx->can_dev.irqs[0].posthook.action[3].write.mask   = 0x1 << 8;
+                /* clear TSR: RQCP2 */
                ctx->can_dev.irqs[0].posthook.action[4].instr = IRQ_PH_WRITE;
-               ctx->can_dev.irqs[0].posthook.action[4].write.offset = 0x0008;
-               ctx->can_dev.irqs[0].posthook.action[4].write.value  = 0x1;
-               ctx->can_dev.irqs[0].posthook.action[4].write.mask   = 0x1 << 16; /* clear TSR: RQCP2 */
+               ctx->can_dev.irqs[0].posthook.action[4].write.offset = CAN_TSR;
+               ctx->can_dev.irqs[0].posthook.action[4].write.value  = 0;
+               ctx->can_dev.irqs[0].posthook.action[4].write.mask   = 0x1 << 16;
 
 
-               /* RX0 interrupt is the consequence of RF0R register bit set,
-                * see ST RM00090, chap 32.8 (CAN Interrupts) fig. 348 */
+               /* RX0 interrupt is the consequence of RF0R register bits being
+                * set, see STRM00090, chap 32.8   (CAN Interrupts)    fig. 348
+                *                     chap 32.9.5 (CAN registers map) table 184 */
+               ctx->can_dev.irqs[1].irq  = CAN1_RX0_IRQ;
                ctx->can_dev.irqs[1].handler = can_IRQHandler;
-               ctx->can_dev.irqs[1].irq = CAN1_RX0_IRQ;
                ctx->can_dev.irqs[1].mode = IRQ_ISR_STANDARD;
-
-               ctx->can_dev.irqs[1].posthook.status = 0x0004; /* MSR */
-               ctx->can_dev.irqs[1].posthook.data   = 0x000C; /* RF0R */
+               ctx->can_dev.irqs[1].posthook.status = CAN_MSR;
+               ctx->can_dev.irqs[1].posthook.data   = CAN_RF0R;
 
                ctx->can_dev.irqs[1].posthook.action[0].instr = IRQ_PH_READ;
-               ctx->can_dev.irqs[1].posthook.action[0].read.offset = 0x0004;
+               ctx->can_dev.irqs[1].posthook.action[0].read.offset = CAN_MSR;
 
                ctx->can_dev.irqs[1].posthook.action[1].instr = IRQ_PH_READ;
-               ctx->can_dev.irqs[1].posthook.action[1].read.offset = 0x000C;
-
+               ctx->can_dev.irqs[1].posthook.action[1].read.offset = CAN_RF0R;
+               /* We need to mask in the kernel the sources of the RX0 interrupt
+                * related to the mailboxes, until the user task gets the message
+                * and releases the mailbox by setting RF0R:RFOM0.
+                * To do that we clear IER:FMPIE0 and it will be set by the task.*/
                ctx->can_dev.irqs[1].posthook.action[2].instr = IRQ_PH_WRITE;
-               ctx->can_dev.irqs[1].posthook.action[2].write.offset = 0x000C;
-               ctx->can_dev.irqs[1].posthook.action[2].write.value  = 0x03;
-               ctx->can_dev.irqs[1].posthook.action[2].write.mask   = 0x3 << 3; /* clear RF0R:FULL0, RF0R:FOVR0 */
+               ctx->can_dev.irqs[1].posthook.action[2].write.offset = CAN_IER;
+               ctx->can_dev.irqs[1].posthook.action[2].write.value  = 0;
+               ctx->can_dev.irqs[1].posthook.action[2].write.mask   = CAN_IER_FMPIE0_Msk;
+               /* But we still need to acknowledge RF0R: FULL0, FOVR0. */
+               ctx->can_dev.irqs[1].posthook.action[3].instr = IRQ_PH_WRITE;
+               ctx->can_dev.irqs[1].posthook.action[3].write.offset = CAN_RF0R;
+               ctx->can_dev.irqs[1].posthook.action[3].write.value  = 0;
+               ctx->can_dev.irqs[1].posthook.action[3].write.mask   = 0x38; /* DEBUG : should be 0x18 !! */
 
 
-               /* RX1 interrupt is the consequence of RF1R register bit set,
-                * see ST RM00090, chap 32.8 (CAN Interrupts) fig. 348 */
-               ctx->can_dev.irqs[2].handler = can_IRQHandler;
+               /* RX1 interrupt is the consequence of RF1R register bits being
+                * set, see STRM00090, chap 32.8   (CAN Interrupts)    fig. 348
+                *                     chap 32.9.5 (CAN registers map) table 184 */
                ctx->can_dev.irqs[2].irq = CAN1_RX1_IRQ;
+               ctx->can_dev.irqs[2].handler = can_IRQHandler;
                ctx->can_dev.irqs[2].mode = IRQ_ISR_STANDARD;
-
-               ctx->can_dev.irqs[2].posthook.status = 0x0004; /* MSR */
-               ctx->can_dev.irqs[2].posthook.data   = 0x0010; /* RF1R */
+               ctx->can_dev.irqs[2].posthook.status = CAN_MSR;
+               ctx->can_dev.irqs[2].posthook.data   = CAN_RF1R;
 
                ctx->can_dev.irqs[2].posthook.action[0].instr = IRQ_PH_READ;
-               ctx->can_dev.irqs[2].posthook.action[0].read.offset = 0x0004;
+               ctx->can_dev.irqs[2].posthook.action[0].read.offset = CAN_MSR;
 
                ctx->can_dev.irqs[2].posthook.action[1].instr = IRQ_PH_READ;
-               ctx->can_dev.irqs[2].posthook.action[1].read.offset = 0x0010;
-
+               ctx->can_dev.irqs[2].posthook.action[1].read.offset = CAN_RF1R;
+               /* We need to mask in the kernel the sources of the RX1 interrupt
+                * related to the mailboxes, until the user task get the message
+                * and releases the mailbox by setting RF1R:RFOM1.
+                * To do that we clear IER:FMPIE1 and it will be set by the task.*/
                ctx->can_dev.irqs[2].posthook.action[2].instr = IRQ_PH_WRITE;
-               ctx->can_dev.irqs[2].posthook.action[2].write.offset = 0x0010;
-               ctx->can_dev.irqs[2].posthook.action[2].write.value  = 0x03;
-               ctx->can_dev.irqs[2].posthook.action[2].write.mask   = 0x3 << 3; /* clear RF1R:FULL1, RF1R:FOVR1 */
+               ctx->can_dev.irqs[2].posthook.action[2].write.offset = CAN_IER;
+               ctx->can_dev.irqs[2].posthook.action[2].write.value  = 0;
+               ctx->can_dev.irqs[2].posthook.action[2].write.mask   = 0x10;
+               /* But we still need to acknowledge RF1R: FULL1, FOVR1. */
+               ctx->can_dev.irqs[2].posthook.action[3].instr = IRQ_PH_WRITE;
+               ctx->can_dev.irqs[2].posthook.action[3].write.offset = CAN_RF1R;
+               ctx->can_dev.irqs[2].posthook.action[3].write.value  = 0;
+               ctx->can_dev.irqs[2].posthook.action[3].write.mask   = 0x18;
 
-               /* SCE interrupt is the consequence of MSR register bit set,
-                * in association with the ESR register filters
+
+               /* The Status Change SCE interrupt is the consequence of MSR
+                * register bits being
+                * set, in association with the ESR register filters
                 * see ST RM00090, chap 32.8 (CAN Interrupts) fig. 348 */
-               ctx->can_dev.irqs[3].handler = can_IRQHandler;
                ctx->can_dev.irqs[3].irq = CAN1_SCE_IRQ; /* status change*/
+               ctx->can_dev.irqs[3].handler = can_IRQHandler;
                ctx->can_dev.irqs[3].mode = IRQ_ISR_STANDARD;
-
-               ctx->can_dev.irqs[3].posthook.status = 0x0004; /* MSR */
-               ctx->can_dev.irqs[3].posthook.data   = 0x0018; /* ESR */
+               ctx->can_dev.irqs[3].posthook.status = CAN_MSR;
+               ctx->can_dev.irqs[3].posthook.data   = CAN_ESR;
 
                ctx->can_dev.irqs[3].posthook.action[0].instr = IRQ_PH_READ;
-               ctx->can_dev.irqs[3].posthook.action[0].read.offset = 0x0004;
-
+               ctx->can_dev.irqs[3].posthook.action[0].read.offset = CAN_MSR;
                ctx->can_dev.irqs[3].posthook.action[1].instr = IRQ_PH_READ;
-               ctx->can_dev.irqs[3].posthook.action[1].read.offset = 0x0018;
-
+               ctx->can_dev.irqs[3].posthook.action[1].read.offset = CAN_ESR;
+               /* clear MSR:SLAKI, WKUI & ERRI (previous values saved in status
+                * variable */
                ctx->can_dev.irqs[3].posthook.action[2].instr = IRQ_PH_WRITE;
-               ctx->can_dev.irqs[3].posthook.action[2].write.offset = 0x0004;
+               ctx->can_dev.irqs[3].posthook.action[2].write.offset = CAN_MSR;
                ctx->can_dev.irqs[3].posthook.action[2].write.value  = 0x00;
-               ctx->can_dev.irqs[3].posthook.action[2].write.mask   = 0x7 << 2; /* clear SLAKI, WKUI & ERRI (previous values saved in status variable */
+               ctx->can_dev.irqs[3].posthook.action[2].write.mask   = 0x7 << 2;
+               /* Set ESR:LEC[0:2] to 0b111 to clear the error number */
+               ctx->can_dev.irqs[3].posthook.action[3].instr = IRQ_PH_WRITE;
+               ctx->can_dev.irqs[3].posthook.action[3].write.offset = CAN_ESR;
+               ctx->can_dev.irqs[3].posthook.action[3].write.value  = 0x70;
+               ctx->can_dev.irqs[3].posthook.action[3].write.mask   = 0x70;
            }
            break;
         case CAN_PORT_2:
@@ -643,12 +620,12 @@ mbed_error_t can_start(__inout can_context_t *ctx)
     /* enable CAN interrupts if in IT mode */
     if (ctx->access == CAN_ACCESS_IT) {
         uint32_t ier_val = 0;
-        ier_val = CAN_IER_ERRIE_Msk |
-                  CAN_IER_BOFIE_Msk |
+        ier_val = CAN_IER_ERRIE_Msk  |
+                  CAN_IER_BOFIE_Msk  |
                   CAN_IER_FOVIE0_Msk |
                   CAN_IER_FOVIE1_Msk |
-                  CAN_IER_FFIE0_Msk |
-                  CAN_IER_FFIE1_Msk |
+                  CAN_IER_FFIE0_Msk  |
+                  CAN_IER_FFIE1_Msk  |
                   CAN_IER_FMPIE0_Msk |
                   CAN_IER_FMPIE1_Msk |
                   CAN_IER_TMEIE_Msk;

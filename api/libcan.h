@@ -38,7 +38,7 @@
 /*
  * Error codes bit field
  */
-#define  CAN_ERROR_NONE                      0x0
+#define  CAN_ERROR_NONE                       0x0
 #define  CAN_ERROR_TX_ARBITRATION_LOST_MB0   (0x1 << 0)
 #define  CAN_ERROR_TX_TRANSMISSION_ERR_MB0   (0x1 << 1)
 #define  CAN_ERROR_TX_ARBITRATION_LOST_MB1   (0x1 << 2)
@@ -49,8 +49,8 @@
 #define  CAN_ERROR_RX_FIFO0_FULL             (0x1 << 7)
 #define  CAN_ERROR_RX_FIFO1_OVERRRUN         (0x1 << 6)
 #define  CAN_ERROR_RX_FIFO1_FULL             (0x1 << 7)
-#define  CAN_ERROR_ERR_WARNING               (0x1 << 8)
-#define  CAN_ERROR_ERR_PASV                  (0x1 << 9)
+#define  CAN_ERROR_ERR_WARNING_LIMIT         (0x1 << 8)
+#define  CAN_ERROR_ERR_PASSIVE_LIMIT         (0x1 << 9)
 #define  CAN_ERROR_ERR_BUS_OFF               (0x1 << 10)
 #define  CAN_ERROR_ERR_LEC_STUFF             (0x1 << 11)
 #define  CAN_ERROR_ERR_LEC_FROM              (0x1 << 12)
@@ -236,5 +236,11 @@ mbed_error_t can_receive(const __in  can_context_t *ctx,
                          const __in  can_fifo_t     fifo,
                                __out can_header_t  *header,
                                __out can_data_t    *data);
+
+#ifdef _LIBCAN_
+volatile uint32_t nb_CAN_IRQ_Handler = 0;
+#else
+extern volatile uint32_t nb_CAN_IRQ_Handler;
+#endif
 
 #endif/*!LIBCAN_H_*/
