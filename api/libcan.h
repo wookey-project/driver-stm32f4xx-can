@@ -100,8 +100,7 @@ typedef enum {
     CAN_FIFO_1
 } can_fifo_t;
 
-
-
+/* can receive policy : polling or interrupts */
 typedef enum {
     CAN_ACCESS_POLL,
     CAN_ACCESS_IT
@@ -177,14 +176,14 @@ typedef union {
 /****************************************************************/
 
 /*
- * The CAN driver is using a context, which is used during the overall driver
- * usage. This context is separated into two parts:
- * - one set by the upper layer, read by the driver at declaration time
- * - one set by the driver, during the device lifecycle, to keep the
+ * The CAN driver uses a context for all operations. This context is separated
+ * in two parts:
+ * - one set by the upper layer, and read by the driver at declaration time
+ * - the other one set by the driver, during the device lifecycle, to keep the
  *   context uptodate
  *
  * The driver permits to handle multiple CAN devices using multiple contexts
- * in the same time, as there is no globals.
+ * at the same time, as there is no globals.
  */
 typedef struct {
     /* about infos set at declare time by uper layer **/
