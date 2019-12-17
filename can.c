@@ -15,8 +15,8 @@
 #define CONFIG_CAN_BTR_BRP  1 // Baud Rate Prescaler to define the time quantum
                               // t_q = (BRP +1) * t_p_apb1_clk
 #define CONFIG_CAN_BTR_SJW  1 // synchronization jump width = SJW * t_q
-#define CONFIG_CAN_BTR_TS1 14 // Bit Segment 1 t_BS1 = (TS1 +1) * t_q
-#define CONFIG_CAN_BTR_TS2  6 // Bit Segment 2 t_BS2 = (TS2 +1) * t_q
+#define CONFIG_CAN_BTR_TS1 12 // Bit Segment 1 t_BS1 = (TS1 +1) * t_q
+#define CONFIG_CAN_BTR_TS2  5 // Bit Segment 2 t_BS2 = (TS2 +1) * t_q
 
 #define MAX_BUSY_WAITING_CYCLES 2147483647 /* = 2^31 */
 
@@ -798,7 +798,9 @@ mbed_error_t can_xmit(const __in  can_context_t *ctx,
         errcode = MBED_ERROR_INVPARAM;
         goto err;
     }
+    /* Set data length */
     set_reg_value(can_tdtxr, header->DLC, CAN_TDTxR_DLC_Msk, CAN_TDTxR_DLC_Pos);
+
     if (header->TGT == true) {
         /* global time transmission requested */
         set_reg_bits(can_tdtxr, CAN_TDTxR_TGT_Msk);
@@ -815,6 +817,9 @@ mbed_error_t can_xmit(const __in  can_context_t *ctx,
     set_reg_value(can_tdhxr, data->data_fields.data5, CAN_TDHxR_DATA5_Msk, CAN_TDHxR_DATA5_Pos);
     set_reg_value(can_tdhxr, data->data_fields.data6, CAN_TDHxR_DATA6_Msk, CAN_TDHxR_DATA6_Pos);
     set_reg_value(can_tdhxr, data->data_fields.data7, CAN_TDHxR_DATA7_Msk, CAN_TDHxR_DATA7_Pos);
+
+    /* Clear RTR bit to ensure that a data frame is emitted */
+    clear_reg_bits(can_tixr, CAN_TIxR_RTR_Msk);
 
     /* requesting transmission */
     set_reg_bits(can_tixr, CAN_TIxR_TXRQ_Msk);
