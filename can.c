@@ -9,14 +9,7 @@
 #include "libc/arpa/inet.h"
 #include "generated/can1.h"
 #include "generated/can2.h"
-
-/** CAN Hardware Configuration **/
-/* Nominal Bit Time = t_q + t_BS1 + t_BS2 = (TS1 + TS2 +3)*t_q */
-#define CONFIG_CAN_BTR_BRP  1 // Baud Rate Prescaler to define the time quantum
-                              // t_q = (BRP +1) * t_p_apb1_clk
-#define CONFIG_CAN_BTR_SJW  1 // synchronization jump width = SJW * t_q
-#define CONFIG_CAN_BTR_TS1 12 // Bit Segment 1 t_BS1 = (TS1 +1) * t_q
-#define CONFIG_CAN_BTR_TS2  5 // Bit Segment 2 t_BS2 = (TS2 +1) * t_q
+#include "autoconf.h"
 
 #define MAX_BUSY_WAITING_CYCLES 2147483647 /* = 2^31 */
 
@@ -564,14 +557,42 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
             break;
     }
 
-    /* Set TS1, TS2, prescaler to other than default value...
-     * See RM0090 6.1.3 page 152 and BTR register.
-     * We divide the frequency by 1 + 1 = 2.
-     */
-     set_reg(r_CANx_BTR(ctx->id), CONFIG_CAN_BTR_BRP, CAN_BTR_BRP);
-     set_reg(r_CANx_BTR(ctx->id), CONFIG_CAN_BTR_TS1, CAN_BTR_TS1);
-     set_reg(r_CANx_BTR(ctx->id), CONFIG_CAN_BTR_TS2, CAN_BTR_TS2);
-     set_reg(r_CANx_BTR(ctx->id), CONFIG_CAN_BTR_SJW, CAN_BTR_SJW);
+   /** CAN Hardware Configuration
+    *
+    * Set TS1, TS2 and prescaler so as to get the proper values...
+    * See RM0090 6.1.3 page 152 and BTR register.
+    *
+    * The baud rate is the inverse of the Nominal Bit Time
+    *   1 / br = t_q + t_BS1 + t_BS2
+    * Bit Segment 1 : t_BS1 = (TS1 +1) * t_q
+    * Bit Segment 2 : t_BS2 = (TS2 +1) * t_q
+    *   1 / br = (TS1 + TS2 +3)*t_q
+    *
+    *  Time quantum : t_q = (BRP +1) * t_p_apb1_clk,
+    *  with BRP as Baud Rate Prescaler, that divides the APB1 clock frequency.
+    */
+    static const uint32_t APB1_freq = CONFIG_CORE_FREQUENCY / CONFIG_APB1_DIVISOR;
+    uint32_t brp, ts1, ts2, sjw;
+
+    sjw = 1;  // synchronization jump width = SJW * t_q
+
+    switch (ctx->bit_rate) {
+      case CAN_SPEED_1MHZ:
+        ts1 = 12;
+        ts2 =  6;
+        brp = APB1_freq / (1000000 * (ts1 + ts2 + 3)) -1;
+        break;
+
+      default:
+        brp =  3;
+        ts1 = 14;
+        ts2 =  6;
+    }
+
+     set_reg(r_CANx_BTR(ctx->id), brp, CAN_BTR_BRP);
+     set_reg(r_CANx_BTR(ctx->id), ts1, CAN_BTR_TS1);
+     set_reg(r_CANx_BTR(ctx->id), ts2, CAN_BTR_TS2);
+     set_reg(r_CANx_BTR(ctx->id), sjw, CAN_BTR_SJW);
 
 
     /* Enter filter initialization mode, only for the master : CAN1 */

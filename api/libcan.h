@@ -11,15 +11,14 @@
 #include "libc/syscall.h"
 
 
-/**********************************************************************
- * externally supplied implementations prototypes
+/*******************************************************************************
+ *   CAN event
  *
- * WARNING: these functions MUST be defined in the binary
- * which include the libDFU. These functions implement
- * the backend storage access, which may vary depending on
- * the overall system implementation and which is not, as a
- * consequence, a DFU specific implementation.
- **********************************************************************/
+ * WARNING: this function MUST be defined in the binary that includes the
+ * libCAN. It is required to act as a local interrupt routine and to notify
+ * to the main user task the events transmitted by libCAN in the ISR context.
+ ******************************************************************************/
+
 /*
  * Why using symbol resolution instead of callbacks ?
  *
@@ -35,9 +34,33 @@
  * the callback address and help the compiler at optimization time.
  */
 
+/* CAN events */
+typedef enum {
+    CAN_EVENT_RX_FIFO0_MSG_PENDING = 0,
+    CAN_EVENT_RX_FIFO0_FULL,
+    CAN_EVENT_RX_FIFO1_MSG_PENDING,
+    CAN_EVENT_RX_FIFO1_FULL,
+    CAN_EVENT_TX_MBOX0_COMPLETE,
+    CAN_EVENT_TX_MBOX1_COMPLETE,
+    CAN_EVENT_TX_MBOX2_COMPLETE,
+    CAN_EVENT_TX_MBOX0_ABORT,
+    CAN_EVENT_TX_MBOX1_ABORT,
+    CAN_EVENT_TX_MBOX2_ABORT,
+    CAN_EVENT_SLEEP,
+    CAN_EVENT_WAKUP_FROM_RX_MSG,
+    CAN_EVENT_ERROR
+} can_event_t;
+
+typedef enum {
+   CAN_PORT_1 = 1,
+   CAN_PORT_2 = 2,
+   CAN_PORT_3 = 3
+} can_port_t;
+
 /*
- * Error codes bit field
+ * Error codes bit fields
  */
+typedef uint32_t can_error_t;
 #define  CAN_ERROR_NONE                       0x0
 #define  CAN_ERROR_TX_ARBITRATION_LOST_MB0   (0x1 << 0)
 #define  CAN_ERROR_TX_TRANSMISSION_ERR_MB0   (0x1 << 1)
@@ -59,33 +82,10 @@
 #define  CAN_ERROR_ERR_LEC_BD                (0x1 << 15)
 #define  CAN_ERROR_ERR_LEC_CRC               (0x1 << 16)
 
-typedef enum {
-    CAN_EVENT_RX_FIFO0_MSG_PENDING = 0,
-    CAN_EVENT_RX_FIFO0_FULL,
-    CAN_EVENT_RX_FIFO1_MSG_PENDING,
-    CAN_EVENT_RX_FIFO1_FULL,
-    CAN_EVENT_TX_MBOX0_COMPLETE,
-    CAN_EVENT_TX_MBOX1_COMPLETE,
-    CAN_EVENT_TX_MBOX2_COMPLETE,
-    CAN_EVENT_TX_MBOX0_ABORT,
-    CAN_EVENT_TX_MBOX1_ABORT,
-    CAN_EVENT_TX_MBOX2_ABORT,
-    CAN_EVENT_SLEEP,
-    CAN_EVENT_WAKUP_FROM_RX_MSG,
-    CAN_EVENT_ERROR
-} can_event_t;
+mbed_error_t can_event(can_event_t event, can_port_t port, can_error_t errcode);
 
 
-typedef enum {
-   CAN_PORT_1 = 1,
-   CAN_PORT_2 = 2,
-   CAN_PORT_3 = 3
-} can_port_t;
-
-mbed_error_t can_event(can_event_t event, can_port_t id, uint32_t errcode);
-
-
-/**********************************************************************/
+/******************************************************************************/
 
 /* can transmit mbox id */
 typedef enum {
@@ -134,6 +134,20 @@ typedef enum {
     CAN_ID_EXT = 1
 } can_id_extention_t;
 
+
+typedef enum {
+  CAN_SPEED_1MHZ,
+/* bit rates common to any targets */
+#if CONFIG_CAN_TARGET_VEHICLES
+/* bit rates specific to vehicles */
+  CAN_SPEED_512KHZ,
+#endif
+#if CONFIG_CAN_TARGET_AUTOMATON
+/* bit rates specific to industrial automaton */
+  CAN_SPEED_384KHZ
+#endif
+} can_bit_r_t;
+
 /* can message header */
 typedef struct {
     u_can_msg_id_t     id;    /*< CAN identifier */
@@ -173,7 +187,7 @@ typedef union {
     can_data_fields_t data_fields;
 } can_data_t;
 
-/****************************************************************/
+/******************************************************************************/
 
 /*
  * The CAN driver uses a context for all operations. This context is separated
@@ -196,6 +210,7 @@ typedef struct {
     bool          autoretrans;     /* auto retransmission */
     bool          rxfifolocked;    /* set Rx Fifo locked against overrun */
     bool          txfifoprio;      /* set Tx Fifo in chronological order */
+    can_bit_r_t   bit_rate;        /* physical CAN bus bit rate */
     /* about info set at declare and init time by the driver */
     device_t      can_dev;         /*< CAN associated kernel structure */
     can_state_t   state;           /*< current state */
@@ -242,4 +257,4 @@ volatile uint32_t nb_CAN_IRQ_Handler = 0;
 extern volatile uint32_t nb_CAN_IRQ_Handler;
 #endif
 
-#endif/*!LIBCAN_H_*/
+#endif /*!LIBCAN_H_*/

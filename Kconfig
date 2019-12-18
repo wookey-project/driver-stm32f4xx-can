@@ -9,6 +9,19 @@ if USR_DRV_CAN
 
 menu "Userspace CAN driver options"
 
+choice
+  prompt "Kind of CAN bus targeted"
+  config CAN_TARGET_VEHICLES
+    bool "Support for CAN buses on vehicles"
+    help
+      Select the bit rate configuration adapted to a CAN bus in a vehicle.
+  config CAN_TARGET_AUTOMATONS
+    bool "Support for CAN buses on industrial automation systems"
+    help
+      Select the bit rate configuration adapted to a CAN bus in a industrial automaton.
+endchoice
+
+
 config USR_DRV_CAN_DEBUG
   bool "Activate CAN driver debugging"
   default n
