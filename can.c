@@ -258,8 +258,8 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
         errcode = MBED_ERROR_INVPARAM;
         goto end;
     }
-    /* by now, only master CAN 1 supported. TODO to complete */
-    if (ctx->id != CAN_PORT_1) {
+    /* both master CAN 1 and slave CAN 2 are supported. */
+    if ((ctx->id != CAN_PORT_1) && (ctx->id != CAN_PORT_2)) {
         errcode = MBED_ERROR_INVPARAM;
         goto end;
     }
@@ -269,170 +269,223 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
     ctx->can_dev_handle = 0;
     ctx->state = CAN_STATE_SLEEP; /* default at reset */
 
-    /* let's write CAN device for the kernel... */
+    /* let's describe CAN device for the kernel... */
     strncpy(ctx->can_dev.name, "canx", 4);
     switch (ctx->id) {
+
+        /* CAN 1 */
         case CAN_PORT_1:
            ctx->can_dev.address = can1_dev_infos.address;
-           ctx->can_dev.size = can1_dev_infos.size;
+           ctx->can_dev.size    = can1_dev_infos.size;
 	         ctx->can_dev.gpio_num = 2;
-	   ctx->can_dev.gpios[0].kref.port = can1_dev_infos.gpios[CAN1_TD].port;
-	   ctx->can_dev.gpios[0].kref.pin = can1_dev_infos.gpios[CAN1_TD].pin;
-	   ctx->can_dev.gpios[0].mask =
-		   GPIO_MASK_SET_MODE | GPIO_MASK_SET_TYPE | GPIO_MASK_SET_SPEED |
-		   GPIO_MASK_SET_PUPD | GPIO_MASK_SET_AFR;
-	   ctx->can_dev.gpios[0].mode = GPIO_PIN_ALTERNATE_MODE;
-	   ctx->can_dev.gpios[0].speed = GPIO_PIN_VERY_HIGH_SPEED;
-	   ctx->can_dev.gpios[0].type = GPIO_PIN_OTYPER_PP;
-	   ctx->can_dev.gpios[0].pupd = GPIO_NOPULL;
-	   ctx->can_dev.gpios[0].afr = GPIO_AF_AF9; /* AF for CAN1 & CAN2 */
+	         ctx->can_dev.gpios[0].kref.port = can1_dev_infos.gpios[CAN1_TD].port;
+	         ctx->can_dev.gpios[0].kref.pin  = can1_dev_infos.gpios[CAN1_TD].pin;
 
-	   ctx->can_dev.gpios[1].kref.port = can1_dev_infos.gpios[CAN1_RD].port;
-	   ctx->can_dev.gpios[1].kref.pin = can1_dev_infos.gpios[CAN1_RD].pin;
-	   ctx->can_dev.gpios[1].mask =
-		   GPIO_MASK_SET_MODE | GPIO_MASK_SET_TYPE | GPIO_MASK_SET_SPEED |
-		   GPIO_MASK_SET_PUPD | GPIO_MASK_SET_AFR;
-	   ctx->can_dev.gpios[1].mode = GPIO_PIN_ALTERNATE_MODE;
-	   ctx->can_dev.gpios[1].type = GPIO_PIN_OTYPER_PP;
-	   ctx->can_dev.gpios[1].pupd = GPIO_NOPULL;
-	   ctx->can_dev.gpios[1].speed = GPIO_PIN_VERY_HIGH_SPEED;
-	   ctx->can_dev.gpios[1].afr = GPIO_AF_AF9; /* AF for CAN1 & CAN2 */
-
-           if (ctx->access == CAN_ACCESS_POLL) {
-               ctx->can_dev.irq_num = 0;
-           } else {
-               ctx->can_dev.irq_num = 4;
-              /* TX interrupt is the consequence of RQCPx bits being set,
-               * in register TSR.
-               * see ST RM00090, chap 32.8   (CAN Interrupts)    fig.  348
-               *                 chap 32.9.5 (CAN registers map) table 184 */
-               ctx->can_dev.irqs[0].irq = CAN1_TX_IRQ;
-               ctx->can_dev.irqs[0].handler = can_IRQHandler;
-               ctx->can_dev.irqs[0].mode = IRQ_ISR_STANDARD;
-               ctx->can_dev.irqs[0].posthook.status = CAN_MSR;
-               ctx->can_dev.irqs[0].posthook.data   = CAN_TSR;
-
-               ctx->can_dev.irqs[0].posthook.action[0].instr = IRQ_PH_READ;
-               ctx->can_dev.irqs[0].posthook.action[0].read.offset = CAN_MSR;
-
-               ctx->can_dev.irqs[0].posthook.action[1].instr = IRQ_PH_READ;
-               ctx->can_dev.irqs[0].posthook.action[1].read.offset = CAN_TSR;
-                /* clear TSR: RQCP0 */
-               ctx->can_dev.irqs[0].posthook.action[2].instr = IRQ_PH_WRITE;
-               ctx->can_dev.irqs[0].posthook.action[2].write.offset = CAN_TSR;
-               ctx->can_dev.irqs[0].posthook.action[2].write.value  = 0;
-               ctx->can_dev.irqs[0].posthook.action[2].write.mask   = 0x1 << 0;
-               /* clear TSR: RQCP1 */
-               ctx->can_dev.irqs[0].posthook.action[3].instr = IRQ_PH_WRITE;
-               ctx->can_dev.irqs[0].posthook.action[3].write.offset = CAN_TSR;
-               ctx->can_dev.irqs[0].posthook.action[3].write.value  = 0;
-               ctx->can_dev.irqs[0].posthook.action[3].write.mask   = 0x1 << 8;
-               /* clear TSR: RQCP2 */
-               ctx->can_dev.irqs[0].posthook.action[4].instr = IRQ_PH_WRITE;
-               ctx->can_dev.irqs[0].posthook.action[4].write.offset = CAN_TSR;
-               ctx->can_dev.irqs[0].posthook.action[4].write.value  = 0;
-               ctx->can_dev.irqs[0].posthook.action[4].write.mask   = 0x1 << 16;
-
-
-              /* RX0 interrupt is the consequence of RF0R register bits being
-               * set, see STRM00090, chap 32.8   (CAN Interrupts)    fig. 348
-               *                     chap 32.9.5 (CAN registers map) table 184 */
-               ctx->can_dev.irqs[1].irq  = CAN1_RX0_IRQ;
-               ctx->can_dev.irqs[1].handler = can_IRQHandler;
-               ctx->can_dev.irqs[1].mode = IRQ_ISR_STANDARD;
-               ctx->can_dev.irqs[1].posthook.status = CAN_MSR;
-               ctx->can_dev.irqs[1].posthook.data   = CAN_RF0R;
-
-               ctx->can_dev.irqs[1].posthook.action[0].instr = IRQ_PH_READ;
-               ctx->can_dev.irqs[1].posthook.action[0].read.offset = CAN_MSR;
-
-               ctx->can_dev.irqs[1].posthook.action[1].instr = IRQ_PH_READ;
-               ctx->can_dev.irqs[1].posthook.action[1].read.offset = CAN_RF0R;
-              /* We need to mask in the kernel the sources of the RX0 interrupt
-               * related to the mailboxes :
-               *   - we clear IER:FMPIE0 and it will be set again by the
-               *     user task when it calls receive.
-               *   - we clear IER:FFIE0 and it will be set again by the
-               *     user task when it empties the FIFO or if it wasn't FULL
-               *     by the local IRQ Handler
-               *   - same for overrun ! */
-               ctx->can_dev.irqs[1].posthook.action[2].instr = IRQ_PH_WRITE;
-               ctx->can_dev.irqs[1].posthook.action[2].write.offset = CAN_IER;
-               ctx->can_dev.irqs[1].posthook.action[2].write.value  = 0;
-               ctx->can_dev.irqs[1].posthook.action[2].write.mask   =
-                 CAN_IER_FMPIE0_Msk | CAN_IER_FFIE0_Msk | CAN_IER_FOVIE0_Msk;
-
-               /* RX1 interrupt is the consequence of RF1R register bits being
-                * set, see STRM00090, chap 32.8   (CAN Interrupts)    fig. 348
-                *                     chap 32.9.5 (CAN registers map) table 184 */
-               ctx->can_dev.irqs[2].irq = CAN1_RX1_IRQ;
-               ctx->can_dev.irqs[2].handler = can_IRQHandler;
-               ctx->can_dev.irqs[2].mode = IRQ_ISR_STANDARD;
-               ctx->can_dev.irqs[2].posthook.status = CAN_MSR;
-               ctx->can_dev.irqs[2].posthook.data   = CAN_RF1R;
-
-               ctx->can_dev.irqs[2].posthook.action[0].instr = IRQ_PH_READ;
-               ctx->can_dev.irqs[2].posthook.action[0].read.offset = CAN_MSR;
-
-               ctx->can_dev.irqs[2].posthook.action[1].instr = IRQ_PH_READ;
-               ctx->can_dev.irqs[2].posthook.action[1].read.offset = CAN_RF1R;
-               /* We mask in the kernel the sources of the RX1 interrupt */
-               ctx->can_dev.irqs[2].posthook.action[2].instr = IRQ_PH_WRITE;
-               ctx->can_dev.irqs[2].posthook.action[2].write.offset = CAN_IER;
-               ctx->can_dev.irqs[2].posthook.action[2].write.value  = 0;
-               ctx->can_dev.irqs[2].posthook.action[2].write.mask   =
-                 CAN_IER_FMPIE1_Msk | CAN_IER_FFIE1_Msk | CAN_IER_FOVIE1_Msk;
-
-
-               /* The Status Change SCE interrupt is the consequence of MSR
-                * register bits being set, in association with the ESR register
-                * filters.
-                * see ST RM00090, chap 32.8 (CAN Interrupts) fig. 348 */
-               ctx->can_dev.irqs[3].irq = CAN1_SCE_IRQ; /* status change*/
-               ctx->can_dev.irqs[3].handler = can_IRQHandler;
-               ctx->can_dev.irqs[3].mode = IRQ_ISR_STANDARD;
-               ctx->can_dev.irqs[3].posthook.status = CAN_MSR;
-               ctx->can_dev.irqs[3].posthook.data   = CAN_ESR;
-
-               ctx->can_dev.irqs[3].posthook.action[0].instr = IRQ_PH_READ;
-               ctx->can_dev.irqs[3].posthook.action[0].read.offset = CAN_MSR;
-               ctx->can_dev.irqs[3].posthook.action[1].instr = IRQ_PH_READ;
-               ctx->can_dev.irqs[3].posthook.action[1].read.offset = CAN_ESR;
-               /* clear MSR:SLAKI, WKUI & ERRI (previous values saved in status
-                * variable */
-               ctx->can_dev.irqs[3].posthook.action[2].instr = IRQ_PH_WRITE;
-               ctx->can_dev.irqs[3].posthook.action[2].write.offset = CAN_MSR;
-               ctx->can_dev.irqs[3].posthook.action[2].write.value  = 0x00;
-               ctx->can_dev.irqs[3].posthook.action[2].write.mask   = //0x7 << 2;
-                                CAN_MSR_SLAKI_Msk | CAN_MSR_WKUI_Msk |
-                                CAN_MSR_ERRI_Msk;
-               /* Set ESR:LEC[0:2] to 0b111 to clear the error number */
-               ctx->can_dev.irqs[3].posthook.action[3].instr = IRQ_PH_WRITE;
-               ctx->can_dev.irqs[3].posthook.action[3].write.offset = CAN_ESR;
-               ctx->can_dev.irqs[3].posthook.action[3].write.value  = 0xFFFF;
-               ctx->can_dev.irqs[3].posthook.action[3].write.mask   =
-                                CAN_ESR_LEC_Msk;
-               /* Inhibate error interrupt while the error is still there */
-               ctx->can_dev.irqs[3].posthook.action[4].instr = IRQ_PH_WRITE;
-               ctx->can_dev.irqs[3].posthook.action[4].write.offset = CAN_IER;
-               ctx->can_dev.irqs[3].posthook.action[4].write.value  = 0;
-               ctx->can_dev.irqs[3].posthook.action[4].write.mask   =
-                                CAN_IER_ERRIE_Msk  // OK !
-                              | CAN_IER_LECIE_Msk  // NOK.
-                              | CAN_IER_BOFIE_Msk  // NOK.
-                              | CAN_IER_EPVIE_Msk  // NOK.
-                              | CAN_IER_EWGIE_Msk; // NOK.
-           }
+           ctx->can_dev.gpios[1].kref.port = can1_dev_infos.gpios[CAN1_RD].port;
+           ctx->can_dev.gpios[1].kref.pin  = can1_dev_infos.gpios[CAN1_RD].pin;
            break;
+
+        /* CAN 2 */
         case CAN_PORT_2:
-           /* TODO: to complete */
+           ctx->can_dev.address = can2_dev_infos.address;
+           ctx->can_dev.size    = can2_dev_infos.size;
+           ctx->can_dev.gpio_num = 2;
+           ctx->can_dev.gpios[0].kref.port = can2_dev_infos.gpios[CAN2_TD].port;
+           ctx->can_dev.gpios[0].kref.pin  = can2_dev_infos.gpios[CAN2_TD].pin;
+
+           ctx->can_dev.gpios[1].kref.port = can2_dev_infos.gpios[CAN2_RD].port;
+           ctx->can_dev.gpios[1].kref.pin  = can2_dev_infos.gpios[CAN2_RD].pin;
            break;
+
         default:
            errcode = MBED_ERROR_INVPARAM;
            goto end;
            break;
     }
-    /* ... and declare it */
+    ctx->can_dev.gpios[0].mask =
+		    GPIO_MASK_SET_MODE | GPIO_MASK_SET_TYPE | GPIO_MASK_SET_SPEED |
+		    GPIO_MASK_SET_PUPD | GPIO_MASK_SET_AFR;
+	  ctx->can_dev.gpios[0].mode  = GPIO_PIN_ALTERNATE_MODE;
+	  ctx->can_dev.gpios[0].speed = GPIO_PIN_VERY_HIGH_SPEED;
+	  ctx->can_dev.gpios[0].type  = GPIO_PIN_OTYPER_PP;
+	  ctx->can_dev.gpios[0].pupd  = GPIO_NOPULL;
+	  ctx->can_dev.gpios[0].afr   = GPIO_AF_AF9; /* AF for CAN1 & CAN2 */
+
+    ctx->can_dev.gpios[1].mask =
+		    GPIO_MASK_SET_MODE | GPIO_MASK_SET_TYPE | GPIO_MASK_SET_SPEED |
+		    GPIO_MASK_SET_PUPD | GPIO_MASK_SET_AFR;
+    ctx->can_dev.gpios[1].mode  = GPIO_PIN_ALTERNATE_MODE;
+    ctx->can_dev.gpios[1].type  = GPIO_PIN_OTYPER_PP;
+    ctx->can_dev.gpios[1].pupd  = GPIO_NOPULL;
+    ctx->can_dev.gpios[1].speed = GPIO_PIN_VERY_HIGH_SPEED;
+    ctx->can_dev.gpios[1].afr   = GPIO_AF_AF9; /* AF for CAN1 & CAN2 */
+
+    if (ctx->access == CAN_ACCESS_POLL) {
+        ctx->can_dev.irq_num = 0; // Access by polling. No IRQs.
+    } else {
+        ctx->can_dev.irq_num = 4; // Access by interrupts.
+
+        /* TX interrupt is the consequence of RQCPx bits being set,
+         * in register TSR.
+         * see ST RM00090, chap 32.8   (CAN Interrupts)    fig.  348
+         *                 chap 32.9.5 (CAN registers map) table 184 */
+        switch (ctx->id) {
+           case CAN_PORT_1:
+               ctx->can_dev.irqs[0].irq = CAN1_TX_IRQ;
+               break;
+           case CAN_PORT_2:
+                ctx->can_dev.irqs[0].irq = CAN2_TX_IRQ;
+                break;
+           default:
+                errcode = MBED_ERROR_INVPARAM;
+                goto end;
+                break;
+        }
+        ctx->can_dev.irqs[0].handler = can_IRQHandler;
+        ctx->can_dev.irqs[0].mode = IRQ_ISR_STANDARD;
+        ctx->can_dev.irqs[0].posthook.status = CAN_MSR;
+        ctx->can_dev.irqs[0].posthook.data   = CAN_TSR;
+
+        ctx->can_dev.irqs[0].posthook.action[0].instr = IRQ_PH_READ;
+        ctx->can_dev.irqs[0].posthook.action[0].read.offset = CAN_MSR;
+
+        ctx->can_dev.irqs[0].posthook.action[1].instr = IRQ_PH_READ;
+        ctx->can_dev.irqs[0].posthook.action[1].read.offset = CAN_TSR;
+        /* clear TSR: RQCP0 */
+        ctx->can_dev.irqs[0].posthook.action[2].instr = IRQ_PH_WRITE;
+        ctx->can_dev.irqs[0].posthook.action[2].write.offset = CAN_TSR;
+        ctx->can_dev.irqs[0].posthook.action[2].write.value  = 0;
+        ctx->can_dev.irqs[0].posthook.action[2].write.mask   = 0x1 << 0;
+        /* clear TSR: RQCP1 */
+        ctx->can_dev.irqs[0].posthook.action[3].instr = IRQ_PH_WRITE;
+        ctx->can_dev.irqs[0].posthook.action[3].write.offset = CAN_TSR;
+        ctx->can_dev.irqs[0].posthook.action[3].write.value  = 0;
+        ctx->can_dev.irqs[0].posthook.action[3].write.mask   = 0x1 << 8;
+        /* clear TSR: RQCP2 */
+        ctx->can_dev.irqs[0].posthook.action[4].instr = IRQ_PH_WRITE;
+        ctx->can_dev.irqs[0].posthook.action[4].write.offset = CAN_TSR;
+        ctx->can_dev.irqs[0].posthook.action[4].write.value  = 0;
+        ctx->can_dev.irqs[0].posthook.action[4].write.mask   = 0x1 << 16;
+
+
+        /* RX0 interrupt is the consequence of RF0R register bits being
+         * set, see STRM00090, chap 32.8   (CAN Interrupts)    fig. 348
+         *                     chap 32.9.5 (CAN registers map) table 184 */
+        switch (ctx->id) {
+           case CAN_PORT_1:
+               ctx->can_dev.irqs[1].irq  = CAN1_RX0_IRQ;
+               break;
+           case CAN_PORT_2:
+               ctx->can_dev.irqs[1].irq = CAN2_RX0_IRQ;
+               break;
+           default:
+                errcode = MBED_ERROR_INVPARAM;
+                goto end;
+        }
+        ctx->can_dev.irqs[1].handler = can_IRQHandler;
+        ctx->can_dev.irqs[1].mode = IRQ_ISR_STANDARD;
+        ctx->can_dev.irqs[1].posthook.status = CAN_MSR;
+        ctx->can_dev.irqs[1].posthook.data   = CAN_RF0R;
+        ctx->can_dev.irqs[1].posthook.action[0].instr = IRQ_PH_READ;
+        ctx->can_dev.irqs[1].posthook.action[0].read.offset = CAN_MSR;
+        ctx->can_dev.irqs[1].posthook.action[1].instr = IRQ_PH_READ;
+        ctx->can_dev.irqs[1].posthook.action[1].read.offset = CAN_RF0R;
+
+        /* We need to mask in the kernel the sources of the RX0 interrupt
+         * related to the mailboxes :
+         *   - we clear IER:FMPIE0 and it will be set again by the
+         *     user task when it calls receive.
+         *   - we clear IER:FFIE0 and it will be set again by the
+         *     user task when it empties the FIFO or if it wasn't FULL
+         *     by the local IRQ Handler
+         *   - same for overrun ! */
+        ctx->can_dev.irqs[1].posthook.action[2].instr = IRQ_PH_WRITE;
+        ctx->can_dev.irqs[1].posthook.action[2].write.offset = CAN_IER;
+        ctx->can_dev.irqs[1].posthook.action[2].write.value  = 0;
+        ctx->can_dev.irqs[1].posthook.action[2].write.mask   =
+           CAN_IER_FMPIE0_Msk | CAN_IER_FFIE0_Msk | CAN_IER_FOVIE0_Msk;
+
+
+
+        /* RX1 interrupt is the consequence of RF1R register bits being
+         * set, see STRM00090, chap 32.8   (CAN Interrupts)    fig. 348
+         *                     chap 32.9.5 (CAN registers map) table 184 */
+
+        switch (ctx->id) {
+           case CAN_PORT_1:
+              ctx->can_dev.irqs[2].irq = CAN1_RX1_IRQ;
+              break;
+           case CAN_PORT_2:
+              ctx->can_dev.irqs[2].irq = CAN2_RX1_IRQ;
+              break;
+           default:
+                errcode = MBED_ERROR_INVPARAM;
+                goto end;
+                break;
+        }
+        ctx->can_dev.irqs[2].handler = can_IRQHandler;
+        ctx->can_dev.irqs[2].mode = IRQ_ISR_STANDARD;
+        ctx->can_dev.irqs[2].posthook.status = CAN_MSR;
+        ctx->can_dev.irqs[2].posthook.data   = CAN_RF1R;
+        ctx->can_dev.irqs[2].posthook.action[0].instr = IRQ_PH_READ;
+        ctx->can_dev.irqs[2].posthook.action[0].read.offset = CAN_MSR;
+        ctx->can_dev.irqs[2].posthook.action[1].instr = IRQ_PH_READ;
+        ctx->can_dev.irqs[2].posthook.action[1].read.offset = CAN_RF1R;
+        /* We mask in the kernel the sources of the RX1 interrupt */
+        ctx->can_dev.irqs[2].posthook.action[2].instr = IRQ_PH_WRITE;
+        ctx->can_dev.irqs[2].posthook.action[2].write.offset = CAN_IER;
+        ctx->can_dev.irqs[2].posthook.action[2].write.value  = 0;
+        ctx->can_dev.irqs[2].posthook.action[2].write.mask   =
+             CAN_IER_FMPIE1_Msk | CAN_IER_FFIE1_Msk | CAN_IER_FOVIE1_Msk;
+
+
+        /* The Status Change SCE interrupt is the consequence of MSR
+         * register bits being set, in association with the ESR register
+         * filters.
+         * see ST RM00090, chap 32.8 (CAN Interrupts) fig. 348 */
+        switch (ctx->id) {
+           case CAN_PORT_1:
+              ctx->can_dev.irqs[3].irq = CAN1_SCE_IRQ;
+              break;
+           case CAN_PORT_2:
+              ctx->can_dev.irqs[3].irq = CAN2_SCE_IRQ;
+              break;
+           default:
+              errcode = MBED_ERROR_INVPARAM;
+              goto end;
+              break;
+        }
+        ctx->can_dev.irqs[3].handler = can_IRQHandler;
+        ctx->can_dev.irqs[3].mode = IRQ_ISR_STANDARD;
+        ctx->can_dev.irqs[3].posthook.status = CAN_MSR;
+        ctx->can_dev.irqs[3].posthook.data   = CAN_ESR;
+        ctx->can_dev.irqs[3].posthook.action[0].instr = IRQ_PH_READ;
+        ctx->can_dev.irqs[3].posthook.action[0].read.offset = CAN_MSR;
+        ctx->can_dev.irqs[3].posthook.action[1].instr = IRQ_PH_READ;
+        ctx->can_dev.irqs[3].posthook.action[1].read.offset = CAN_ESR;
+        /* clear MSR:SLAKI, WKUI & ERRI (previous values saved in status
+         * variable */
+        ctx->can_dev.irqs[3].posthook.action[2].instr = IRQ_PH_WRITE;
+        ctx->can_dev.irqs[3].posthook.action[2].write.offset = CAN_MSR;
+        ctx->can_dev.irqs[3].posthook.action[2].write.value  = 0x00;
+        ctx->can_dev.irqs[3].posthook.action[2].write.mask   = //0x7 << 2;
+           CAN_MSR_SLAKI_Msk | CAN_MSR_WKUI_Msk | CAN_MSR_ERRI_Msk;
+        /* Set ESR:LEC[0:2] to 0b111 to clear the error number */
+        ctx->can_dev.irqs[3].posthook.action[3].instr = IRQ_PH_WRITE;
+        ctx->can_dev.irqs[3].posthook.action[3].write.offset = CAN_ESR;
+        ctx->can_dev.irqs[3].posthook.action[3].write.value  = 0xFFFF;
+        ctx->can_dev.irqs[3].posthook.action[3].write.mask   = CAN_ESR_LEC_Msk;
+        /* Inhibate error interrupt while the error is still there */
+        ctx->can_dev.irqs[3].posthook.action[4].instr = IRQ_PH_WRITE;
+        ctx->can_dev.irqs[3].posthook.action[4].write.offset = CAN_IER;
+        ctx->can_dev.irqs[3].posthook.action[4].write.value  = 0;
+        ctx->can_dev.irqs[3].posthook.action[4].write.mask   =
+              CAN_IER_ERRIE_Msk | CAN_IER_LECIE_Msk
+            | CAN_IER_BOFIE_Msk | CAN_IER_EPVIE_Msk;
+
+    }
+
+    /* ... and declare the CAN device */
     sret = sys_init(INIT_DEVACCESS, &(ctx->can_dev), &(ctx->can_dev_handle));
     switch (sret) {
         case SYS_E_DENIED:
@@ -449,7 +502,6 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
             break;
         default:
             break;
-
     }
     errcode = MBED_ERROR_NONE;
 end:
@@ -756,12 +808,11 @@ mbed_error_t can_stop(__inout can_context_t *ctx)
 /*******************************************************************************
  *           EMIT CAN FRAME
  *
- * Send data into one of the CAN Tx MBox
+ * Send data using the first empty CAN Tx mailbox.
  *******************************************************************************/
 mbed_error_t can_xmit(const __in  can_context_t *ctx,
                             __in  can_header_t  *header,
-                            __in  can_data_t    *data,
-                            __out can_mbox_t    *mbox)
+                            __in  can_data_t    *data)
 {
     uint32_t tme;
     volatile uint32_t *can_tdlxr;
@@ -771,7 +822,7 @@ mbed_error_t can_xmit(const __in  can_context_t *ctx,
     mbed_error_t errcode = MBED_ERROR_NONE;
 
     /* sanitize */
-    if (!ctx || !data || !header || !mbox) {
+    if (!ctx || !data || !header) {
         errcode = MBED_ERROR_INVPARAM;
         goto err;
     }
@@ -779,37 +830,32 @@ mbed_error_t can_xmit(const __in  can_context_t *ctx,
         errcode = MBED_ERROR_INVSTATE;
         goto err;
     }
+
+    /* select the first empty mailbox in order */
     tme = get_reg_value(r_CANx_TSR(ctx->id), CAN_TSR_TME_Msk, CAN_TSR_TME_Pos);
-    if (tme == 0x0) {
-        /* no mailbox empty */
-        errcode = MBED_ERROR_BUSY;
-        goto err;
-    }
-    /* select first empty mbox */
     if ((tme & 0x1)) {
-        *mbox = CAN_MBOX_0;
+        /* CAN_MBOX_0 */
         can_tdlxr = r_CANx_TDL0R(ctx->id);
         can_tdhxr = r_CANx_TDH0R(ctx->id);
         can_tixr  = r_CANx_TI0R (ctx->id);
         can_tdtxr = r_CANx_TDT0R(ctx->id);
     } else if (tme & 0x2) {
-        *mbox = CAN_MBOX_1;
+        /* CAN_MBOX_1 */
         can_tdlxr = r_CANx_TDL1R(ctx->id);
         can_tdhxr = r_CANx_TDH1R(ctx->id);
         can_tixr  = r_CANx_TI1R (ctx->id);
         can_tdtxr = r_CANx_TDT1R(ctx->id);
     } else if (tme & 0x4) {
-        *mbox = CAN_MBOX_2;
+        /* CAN_MBOX_2 */
         can_tdlxr = r_CANx_TDL2R(ctx->id);
         can_tdhxr = r_CANx_TDH2R(ctx->id);
         can_tixr  = r_CANx_TI2R (ctx->id);
         can_tdtxr = r_CANx_TDT2R(ctx->id);
     } else {
-        /* should not be executed with the tme == 0x0 check */
-        errcode = MBED_ERROR_UNKNOWN;
+        errcode = MBED_ERROR_BUSY;
         goto err;
-
     }
+
     /* about the header */
     if (header->IDE == CAN_ID_STD) {
         set_reg_value(can_tixr, header->id.std, CAN_TIxR_STID_Msk,  CAN_TIxR_STID_Pos);

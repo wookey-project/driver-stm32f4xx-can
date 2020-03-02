@@ -36,19 +36,19 @@
 
 /* CAN events */
 typedef enum {
-    CAN_EVENT_RX_FIFO0_MSG_PENDING = 0,
-    CAN_EVENT_RX_FIFO0_FULL,
-    CAN_EVENT_RX_FIFO1_MSG_PENDING,
-    CAN_EVENT_RX_FIFO1_FULL,
-    CAN_EVENT_TX_MBOX0_COMPLETE,
-    CAN_EVENT_TX_MBOX1_COMPLETE,
-    CAN_EVENT_TX_MBOX2_COMPLETE,
-    CAN_EVENT_TX_MBOX0_ABORT,
-    CAN_EVENT_TX_MBOX1_ABORT,
-    CAN_EVENT_TX_MBOX2_ABORT,
-    CAN_EVENT_SLEEP,
-    CAN_EVENT_WAKUP_FROM_RX_MSG,
-    CAN_EVENT_ERROR
+    CAN_EVENT_RX_FIFO0_MSG_PENDING =  0,
+    CAN_EVENT_RX_FIFO0_FULL        =  1,
+    CAN_EVENT_RX_FIFO1_MSG_PENDING =  2,
+    CAN_EVENT_RX_FIFO1_FULL        =  3,
+    CAN_EVENT_TX_MBOX0_COMPLETE    =  4,
+    CAN_EVENT_TX_MBOX1_COMPLETE    =  5,
+    CAN_EVENT_TX_MBOX2_COMPLETE    =  6,
+    CAN_EVENT_TX_MBOX0_ABORT       =  7,
+    CAN_EVENT_TX_MBOX1_ABORT       =  8,
+    CAN_EVENT_TX_MBOX2_ABORT       =  9,
+    CAN_EVENT_SLEEP                = 10,
+    CAN_EVENT_WAKUP_FROM_RX_MSG    = 11,
+    CAN_EVENT_ERROR                = 12
 } can_event_t;
 
 typedef enum {
@@ -238,8 +238,7 @@ mbed_error_t can_stop(__inout can_context_t *ctx);
 /* send data into one of the CAN Tx FIFO */
 mbed_error_t can_xmit(const __in  can_context_t *ctx,
                             __in  can_header_t  *header,
-                            __in  can_data_t    *data,
-                            __out can_mbox_t    *mbox);
+                            __in  can_data_t    *data);
 
 mbed_error_t can_is_txmsg_pending(const __in  can_context_t *ctx,
                                         __in  can_mbox_t mbox,
