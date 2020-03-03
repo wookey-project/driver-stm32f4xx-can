@@ -21,6 +21,13 @@ choice
       Select the bit rate configuration adapted to a CAN bus in a industrial automaton.
 endchoice
 
+config APB1_DIVISOR
+   int "APB1 bus divisor"
+   range 1 5
+   default 4
+   help
+      Specify the APB1 Bus clock divisor
+
 
 config USR_DRV_CAN_DEBUG
   bool "Activate CAN driver debugging"
