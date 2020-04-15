@@ -812,7 +812,8 @@ mbed_error_t can_stop(__inout can_context_t *ctx)
  *******************************************************************************/
 mbed_error_t can_xmit(const __in  can_context_t *ctx,
                             __in  can_header_t  *header,
-                            __in  can_data_t    *data)
+                            __in  can_data_t    *data,
+                            __out can_mbox_t    *mbox)
 {
     uint32_t tme;
     volatile uint32_t *can_tdlxr;
@@ -822,7 +823,7 @@ mbed_error_t can_xmit(const __in  can_context_t *ctx,
     mbed_error_t errcode = MBED_ERROR_NONE;
 
     /* sanitize */
-    if (!ctx || !data || !header) {
+    if (!ctx || !data || !header || !mbox) {
         errcode = MBED_ERROR_INVPARAM;
         goto err;
     }
@@ -833,26 +834,32 @@ mbed_error_t can_xmit(const __in  can_context_t *ctx,
 
     /* select the first empty mailbox in order */
     tme = get_reg_value(r_CANx_TSR(ctx->id), CAN_TSR_TME_Msk, CAN_TSR_TME_Pos);
+    if (tme == 0x0) {
+        /* no mailbox empty */
+        errcode = MBED_ERROR_BUSY;
+        goto err;
+    }
     if ((tme & 0x1)) {
-        /* CAN_MBOX_0 */
+        *mbox = CAN_MBOX_0;
         can_tdlxr = r_CANx_TDL0R(ctx->id);
         can_tdhxr = r_CANx_TDH0R(ctx->id);
         can_tixr  = r_CANx_TI0R (ctx->id);
         can_tdtxr = r_CANx_TDT0R(ctx->id);
     } else if (tme & 0x2) {
-        /* CAN_MBOX_1 */
+        *mbox = CAN_MBOX_1;
         can_tdlxr = r_CANx_TDL1R(ctx->id);
         can_tdhxr = r_CANx_TDH1R(ctx->id);
         can_tixr  = r_CANx_TI1R (ctx->id);
         can_tdtxr = r_CANx_TDT1R(ctx->id);
     } else if (tme & 0x4) {
-        /* CAN_MBOX_2 */
+        *mbox = CAN_MBOX_2;
         can_tdlxr = r_CANx_TDL2R(ctx->id);
         can_tdhxr = r_CANx_TDH2R(ctx->id);
         can_tixr  = r_CANx_TI2R (ctx->id);
         can_tdtxr = r_CANx_TDT2R(ctx->id);
     } else {
-        errcode = MBED_ERROR_BUSY;
+        /* should not be executed with the tme == 0x0 check */
+        errcode = MBED_ERROR_UNKNOWN;
         goto err;
     }
 

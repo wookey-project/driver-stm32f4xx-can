@@ -238,7 +238,8 @@ mbed_error_t can_stop(__inout can_context_t *ctx);
 /* send data into one of the CAN Tx FIFO */
 mbed_error_t can_xmit(const __in  can_context_t *ctx,
                             __in  can_header_t  *header,
-                            __in  can_data_t    *data);
+                            __in  can_data_t    *data,
+                            __out can_mbox_t    *mbox);
 
 mbed_error_t can_is_txmsg_pending(const __in  can_context_t *ctx,
                                         __in  can_mbox_t mbox,
