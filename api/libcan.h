@@ -82,7 +82,7 @@ typedef uint32_t can_error_t;
 #define  CAN_ERROR_ERR_LEC_BD                (0x1 << 15)
 #define  CAN_ERROR_ERR_LEC_CRC               (0x1 << 16)
 
-/* Called by the driver's IRQ handler to signal in the app an event */
+/* Called by the driver's IRQ handler to signal an event to the app */
 void can_event(__in can_event_t event,
                __in can_port_t  port,
                __in can_error_t errcode);
@@ -220,16 +220,18 @@ typedef struct {
     int           can_dev_handle;  /* device handle returned by kernel */
 } can_context_t;
 
-/* declare device */
+/* declare the device to the kernel */
 mbed_error_t can_declare(__inout can_context_t *ctx);
 
-/* init device */
+/* initialize the device.
+ * Warning CAN filters are reset to one half for CAN1 and the other for CAN2
+ */
 mbed_error_t can_initialize(__inout can_context_t *ctx);
 
 /* release device */
 mbed_error_t can_release(__inout can_context_t *ctx);
 
-/* set filters (can be done outside initialization) */
+/* set filters (can be done outside initialization). Not implemented yet. */
 mbed_error_t can_set_filters(__in can_context_t *ctx);
 
 /* start the CAN (required after initialization or filters setting) */

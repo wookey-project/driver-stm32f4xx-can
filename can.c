@@ -647,25 +647,31 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
      set_reg(r_CANx_BTR(ctx->id), sjw, CAN_BTR_SJW);
 
 
-    /* Enter filter initialization mode, only for the master : CAN1 */
+    /* Enter filter initialization mode : deactivate reception of messages */
+    set_reg_bits(r_CAN_FMR, CAN_FMR_FINIT_Msk);
+    /* Half of the filters for CAN1 and half for CAN2 (Reset value)*/
+    set_reg(r_CAN_FMR, CAN_MAX_FILTERS / 2, CAN_FMR_CAN2SB);
+    /* Now reset only the filters of the CAN that is initialized */
     if (ctx->id == 1) {
-        set_reg_bits(r_CAN_FMR, CAN_FMR_FINIT_Msk);
-        /* Half of the filters (14) for CAN1 and half for CAN2 (Reset value)*/
-        set_reg(r_CAN_FMR, 14, CAN_FMR_CAN2SB);
-        /* Simple filtering :
-         * - everything for CAN1, on FIFO 0.
-         * - nothing for CAN2.
-         */
-         *r_CAN_FM1R  = 0; // Two 32bits registers in mask mode for all.
-         *r_CAN_FS1R  = 1; // Filter #0 : a single 32-bits scale configuration.
-         *r_CAN_FFA1R = 0; // All filters are assigned to FIFO 0.
-         *r_CAN_FA1R  = 0; // No filter activated !
-         *r_CAN_F0R1  = 0; // Filter #0, bit mask at 0 = Don't care !
-         *r_CAN_F0R2  = 0; // idem for all other filters.
-         *r_CAN_FA1R  = 1; // Filter #0 is activated !
-         /* Quit Filter initialization */
-         clear_reg_bits(r_CAN_FMR, CAN_FMR_FINIT_Msk);
+        /* For CAN 1, reset filtering : everything on FIFO 0 */
+        clear_reg_bits(r_CAN_FM1R,  CAN_FILTERS_LOWER_HALF_Msk); // ID mask mode.
+        set_reg_bits  (r_CAN_FS1R,  CAN_FILTERS_LOWER_HALF_Msk); // 32 bits.
+        clear_reg_bits(r_CAN_FFA1R, CAN_FILTERS_LOWER_HALF_Msk); // FIFO 0.
+         *r_CAN_F0R1  = 0; // Filter #0, ID can be anything.
+         *r_CAN_F0R2  = 0; // Filter #0, bit mask at 0 = Don't care !
+         set_reg(r_CAN_FA1R, 1, CAN_FILTERS_LOWER_HALF); // Filter #0 is activated !
+    } else
+    if (ctx->id == 2) {
+        /* For CAN 2, reset filtering : everything on FIFO 0 */
+        clear_reg_bits(r_CAN_FM1R,  CAN_FILTERS_UPPER_HALF_Msk); // ID mask mode.
+        set_reg_bits  (r_CAN_FS1R,  CAN_FILTERS_UPPER_HALF_Msk); // 32 bits.
+        clear_reg_bits(r_CAN_FFA1R, CAN_FILTERS_UPPER_HALF_Msk); // FIFO 0.
+         *r_CAN_F14R1  = 0; // Filter #14, ID can be anything.
+         *r_CAN_F14R2  = 0; // Filter #14, bit mask at 0 = Don't care !
+         set_reg(r_CAN_FA1R, 1, CAN_FILTERS_UPPER_HALF); // Filter #14 is activated !
     }
+    /* Quit Filter initialization : reactivate the reception of messages */
+    clear_reg_bits(r_CAN_FMR, CAN_FMR_FINIT_Msk);
 
     /* update current state */
     ctx->state = CAN_STATE_READY;
@@ -715,15 +721,14 @@ mbed_error_t can_set_filters(__in can_context_t *ctx)
         err = MBED_ERROR_INVPARAM;
     }
 
-    /* TODO Waiting for FACTx bits to be cleared */
-
-    /* Enter filter initialization */
+    /* Enter filter initialization : deactivate the reception of mesages */
     set_reg_bits(r_CAN_FMR, CAN_FMR_FINIT_Msk);
 
-    /* Quit Filter initialization */
+        /* TODO handle communication filters */
+
+    /* Quit Filter initialization : reactivate the reception of mesages */
     clear_reg_bits(r_CAN_FMR, CAN_FMR_FINIT_Msk);
 
-    /* TODO handle communication filters */
     return err;
 }
 
