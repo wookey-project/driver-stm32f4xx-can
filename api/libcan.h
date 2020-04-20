@@ -82,7 +82,10 @@ typedef uint32_t can_error_t;
 #define  CAN_ERROR_ERR_LEC_BD                (0x1 << 15)
 #define  CAN_ERROR_ERR_LEC_CRC               (0x1 << 16)
 
-mbed_error_t can_event(can_event_t event, can_port_t port, can_error_t errcode);
+/* Called by the driver's IRQ handler to signal in the app an event */
+void can_event(__in can_event_t event,
+               __in can_port_t  port,
+               __in can_error_t errcode);
 
 
 /******************************************************************************/
