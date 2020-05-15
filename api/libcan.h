@@ -200,7 +200,7 @@ typedef union {
  *   context uptodate
  *
  * The driver permits to handle multiple CAN devices using multiple contexts
- * at the same time, as there is no globals.
+ * at the same time, as there are no globals.
  */
 typedef struct {
     /* about infos set at declare time by uper layer **/

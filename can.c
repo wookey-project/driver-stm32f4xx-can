@@ -269,12 +269,12 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
     ctx->can_dev_handle = 0;
     ctx->state = CAN_STATE_SLEEP; /* default at reset */
 
-    /* let's describe CAN device for the kernel... */
-    strncpy(ctx->can_dev.name, "canx", 4);
+    /* let's describe a CAN device to the kernel... */
     switch (ctx->id) {
 
         /* CAN 1 */
         case CAN_PORT_1:
+           strncpy(ctx->can_dev.name, "can1", 4);
            ctx->can_dev.address = can1_dev_infos.address;
            ctx->can_dev.size    = can1_dev_infos.size;
 	         ctx->can_dev.gpio_num = 2;
@@ -287,6 +287,7 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
 
         /* CAN 2 */
         case CAN_PORT_2:
+           strncpy(ctx->can_dev.name, "can2", 4);
            ctx->can_dev.address = can2_dev_infos.address;
            ctx->can_dev.size    = can2_dev_infos.size;
            ctx->can_dev.gpio_num = 2;
@@ -636,9 +637,9 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
         break;
 
       default:
-        brp =  3;
         ts1 = 14;
         ts2 =  6;
+        brp =  3;
     }
 
      set_reg(r_CANx_BTR(ctx->id), brp, CAN_BTR_BRP);
