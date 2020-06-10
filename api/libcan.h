@@ -125,13 +125,6 @@ typedef enum {
     CAN_STATE_RESET
 } can_state_t;
 
-/* a CAN msg uses one id format between standard or extended, depending on IDE
- * field */
-typedef union {
-    uint16_t std;
-    uint32_t ext;
-} u_can_msg_id_t;
-
 typedef enum {
     CAN_ID_STD = 0,
     CAN_ID_EXT = 1
@@ -151,9 +144,12 @@ typedef enum {
 #endif
 } can_bit_r_t;
 
-/* can message header */
+/* CAN message header
+ * it uses an id format standard or extended, depending on the IDE field:
+ *  - Standard CAN 2.0A id is on 11 bits (<= 0x7ff or 2047)
+ *  - Extended CAN 2.0B id is on 29 bits (<= 0x1fffffff) */
 typedef struct {
-    u_can_msg_id_t     id;    /*< CAN identifier */
+    uint32_t           id;    /*< CAN identifier */
     can_id_extention_t IDE;   /*< CAN identifier extention type */
     bool               RTR;   /*< Remote transmission request (data or remote frame) */
     uint8_t            DLC;   /*< Data length */

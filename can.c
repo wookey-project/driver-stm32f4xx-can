@@ -873,9 +873,9 @@ mbed_error_t can_xmit(const __in  can_context_t *ctx,
 
     /* about the header */
     if (header->IDE == CAN_ID_STD) {
-        set_reg_value(can_tixr, header->id.std, CAN_TIxR_STID_Msk,  CAN_TIxR_STID_Pos);
+        set_reg_value(can_tixr, header->id, CAN_TIxR_STID_Msk,  CAN_TIxR_STID_Pos);
     } else if (header->IDE == CAN_ID_EXT) {
-        set_reg_value(can_tixr, header->id.ext, CAN_TIxR_EXID_Msk,  CAN_TIxR_EXID_Pos);
+        set_reg_value(can_tixr, header->id, CAN_TIxR_EXID_Msk,  CAN_TIxR_EXID_Pos);
     } else { /* invalid header format */
         errcode = MBED_ERROR_INVPARAM;
         goto err;
@@ -969,9 +969,9 @@ mbed_error_t can_receive(const __in  can_context_t *ctx,
     /* get header */
     header->IDE = get_reg_value(can_rixr, CAN_RIxR_IDE_Msk,  CAN_RIxR_IDE_Pos);
     if (header->IDE == CAN_ID_STD) {  /* standard Identifier */
-        header->id.std = (uint16_t)get_reg_value(can_rixr, CAN_RIxR_STID_Msk, CAN_RIxR_STID_Pos);
+        header->id = get_reg_value(can_rixr, CAN_RIxR_STID_Msk, CAN_RIxR_STID_Pos);
     } else { /* extended identifier */
-        header->id.ext = get_reg_value(can_rixr, CAN_RIxR_EXID_Msk, CAN_RIxR_EXID_Pos);
+        header->id = get_reg_value(can_rixr, CAN_RIxR_EXID_Msk, CAN_RIxR_EXID_Pos);
     }
     header->RTR = get_reg_value(can_rixr, CAN_RIxR_RTR_Msk, CAN_RIxR_RTR_Pos);
     header->DLC = (uint8_t)get_reg_value(can_rdtxr, CAN_RDTxR_DLC_Msk, CAN_RDTxR_DLC_Pos);
