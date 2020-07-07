@@ -845,6 +845,8 @@ mbed_error_t can_xmit(const __in  can_context_t *ctx,
         errcode = MBED_ERROR_BUSY;
         goto err;
     }
+
+    /* select first empty mbox */
     if ((tme & 0x1)) {
         *mbox = CAN_MBOX_0;
         can_tdlxr = r_CANx_TDL0R(ctx->id);
