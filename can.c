@@ -85,16 +85,16 @@ static void can_IRQHandler(uint8_t irq,
             /* Transmit (or abort) performed on Mbox0, cleared by PH */
             if ((tsr & CAN_TSR_TXOK0_Msk) != 0) {
                 /* Transfer complete */
-                can_event(CAN_EVENT_TX_MBOX0_COMPLETE, canid, err);
+                can_event(CAN_EVENT_TX_COMPLETE_MBOX0, canid, err);
             } else {
                 /* Transfer aborted, get error */
                 if ((tsr & CAN_TSR_ALST0_Msk) != 0) {
-                    err |= CAN_ERROR_TX_ARBITRATION_LOST_MB0;
+                    err |= CAN_ERROR_TX_ARBITRATION_LOST_MBOX0;
                 }
                 if ((tsr & CAN_TSR_TERR0_Msk) != 0) {
-                    err |= CAN_ERROR_TX_TRANSMISSION_ERR_MB0;
+                    err |= CAN_ERROR_TX_TRANSMISSION_ERR_MBOX0;
                 }
-                can_event(CAN_EVENT_TX_MBOX0_ABORT, canid, err);
+                can_event(CAN_EVENT_TX_FAILED_MBOX0, canid, err);
             }
         }
         /* Tx Mbox 1 */
@@ -102,16 +102,16 @@ static void can_IRQHandler(uint8_t irq,
             /* Transmit (or abort) performed on Mbox1, cleared by PH */
             if ((tsr & CAN_TSR_TXOK1_Msk) != 0) {
                 /* Transfer complete */
-                can_event(CAN_EVENT_TX_MBOX1_COMPLETE, canid, err);
+                can_event(CAN_EVENT_TX_COMPLETE_MBOX1, canid, err);
             } else {
                 /* Transfer aborted, get error */
                 if ((tsr & CAN_TSR_ALST1_Msk) != 0) {
-                    err |= CAN_ERROR_TX_ARBITRATION_LOST_MB1;
+                    err |= CAN_ERROR_TX_ARBITRATION_LOST_MBOX1;
                 }
                 if ((tsr & CAN_TSR_TERR1_Msk) != 0) {
-                    err |= CAN_ERROR_TX_TRANSMISSION_ERR_MB1;
+                    err |= CAN_ERROR_TX_TRANSMISSION_ERR_MBOX1;
                 }
-                can_event(CAN_EVENT_TX_MBOX1_ABORT, canid, err);
+                can_event(CAN_EVENT_TX_FAILED_MBOX1, canid, err);
             }
         }
         /* Tx Mbox 2 */
@@ -119,16 +119,16 @@ static void can_IRQHandler(uint8_t irq,
             /* Transmit (or abort) performed on Mbox2, cleared by PH */
             if ((tsr & CAN_TSR_TXOK2_Msk) != 0) {
                 /* Transfer complete */
-                can_event(CAN_EVENT_TX_MBOX2_COMPLETE, canid, err);
+                can_event(CAN_EVENT_TX_COMPLETE_MBOX2, canid, err);
             } else {
                 /* Transfer aborted, get error */
                 if ((tsr & CAN_TSR_ALST2_Msk) != 0) {
-                    err |= CAN_ERROR_TX_ARBITRATION_LOST_MB2;
+                    err |= CAN_ERROR_TX_ARBITRATION_LOST_MBOX2;
                 }
                 if ((tsr & CAN_TSR_TERR2_Msk) != 0) {
-                    err |= CAN_ERROR_TX_TRANSMISSION_ERR_MB2;
+                    err |= CAN_ERROR_TX_TRANSMISSION_ERR_MBOX2;
                 }
-                can_event(CAN_EVENT_TX_MBOX2_ABORT, canid, err);
+                can_event(CAN_EVENT_TX_FAILED_MBOX2, canid, err);
             }
         }
         break; /* Transmit case */
@@ -185,7 +185,7 @@ static void can_IRQHandler(uint8_t irq,
         /* Wakeup */
         if ((msr & CAN_MSR_WKUI_Msk) != 0) {
             /* MSR:WKUI already acknowledge by PH */
-            can_event(CAN_EVENT_WAKUP_FROM_RX_MSG, canid, err);
+            can_event(CAN_EVENT_RX_WAKEUP_MSG, canid, err);
         } else
         /* Sleep */
         if ((msr & CAN_MSR_SLAKI_Msk) != 0) {

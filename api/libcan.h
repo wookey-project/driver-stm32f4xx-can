@@ -43,14 +43,14 @@ typedef enum {
     CAN_EVENT_RX_FIFO0_FULL        =  1,
     CAN_EVENT_RX_FIFO1_MSG_PENDING =  2,
     CAN_EVENT_RX_FIFO1_FULL        =  3,
-    CAN_EVENT_TX_MBOX0_COMPLETE    =  4,
-    CAN_EVENT_TX_MBOX1_COMPLETE    =  5,
-    CAN_EVENT_TX_MBOX2_COMPLETE    =  6,
-    CAN_EVENT_TX_MBOX0_ABORT       =  7,
-    CAN_EVENT_TX_MBOX1_ABORT       =  8,
-    CAN_EVENT_TX_MBOX2_ABORT       =  9,
+    CAN_EVENT_TX_COMPLETE_MBOX0    =  4,
+    CAN_EVENT_TX_COMPLETE_MBOX1    =  5,
+    CAN_EVENT_TX_COMPLETE_MBOX2    =  6,
+    CAN_EVENT_TX_FAILED_MBOX0      =  7,
+    CAN_EVENT_TX_FAILED_MBOX1      =  8,
+    CAN_EVENT_TX_FAILED_MBOX2      =  9,
     CAN_EVENT_SLEEP                = 10,
-    CAN_EVENT_WAKUP_FROM_RX_MSG    = 11,
+    CAN_EVENT_RX_WAKEUP_MSG        = 11,
     CAN_EVENT_ERROR                = 12
 } can_event_t;
 
@@ -65,12 +65,12 @@ typedef enum {
  */
 typedef uint32_t can_error_t;
 #define CAN_ERROR_NONE                       0x0
-#define CAN_ERROR_TX_ARBITRATION_LOST_MB0   (0x1 <<  0)
-#define CAN_ERROR_TX_TRANSMISSION_ERR_MB0   (0x1 <<  1)
-#define CAN_ERROR_TX_ARBITRATION_LOST_MB1   (0x1 <<  2)
-#define CAN_ERROR_TX_TRANSMISSION_ERR_MB1   (0x1 <<  3)
-#define CAN_ERROR_TX_ARBITRATION_LOST_MB2   (0x1 <<  4)
-#define CAN_ERROR_TX_TRANSMISSION_ERR_MB2   (0x1 <<  5)
+#define CAN_ERROR_TX_ARBITRATION_LOST_MBOX0 (0x1 <<  0)
+#define CAN_ERROR_TX_TRANSMISSION_ERR_MBOX0 (0x1 <<  1)
+#define CAN_ERROR_TX_ARBITRATION_LOST_MBOX1 (0x1 <<  2)
+#define CAN_ERROR_TX_TRANSMISSION_ERR_MBOX1 (0x1 <<  3)
+#define CAN_ERROR_TX_ARBITRATION_LOST_MBOX2 (0x1 <<  4)
+#define CAN_ERROR_TX_TRANSMISSION_ERR_MBOX2 (0x1 <<  5)
 #define CAN_ERROR_RX_FIFO0_OVERRRUN         (0x1 <<  6)
 #define CAN_ERROR_RX_FIFO0_FULL             (0x1 <<  7)
 #define CAN_ERROR_RX_FIFO1_OVERRRUN         (0x1 <<  8)
