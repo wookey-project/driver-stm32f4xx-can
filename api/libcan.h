@@ -14,9 +14,12 @@
 /*******************************************************************************
  *   CAN event
  *
+ * This function is called by the driver's IRQ handler to signal an event
+ * to the app.
  * WARNING: this function MUST be defined in the binary that includes the
  * libCAN. It is required to act as a local interrupt routine and to notify
  * to the main user task the events transmitted by libCAN in the ISR context.
+ *
  ******************************************************************************/
 
 /*
@@ -62,18 +65,18 @@ typedef enum {
  */
 typedef uint32_t can_error_t;
 #define  CAN_ERROR_NONE                       0x0
-#define  CAN_ERROR_TX_ARBITRATION_LOST_MB0   (0x1 << 0)
-#define  CAN_ERROR_TX_TRANSMISSION_ERR_MB0   (0x1 << 1)
-#define  CAN_ERROR_TX_ARBITRATION_LOST_MB1   (0x1 << 2)
-#define  CAN_ERROR_TX_TRANSMISSION_ERR_MB1   (0x1 << 3)
-#define  CAN_ERROR_TX_ARBITRATION_LOST_MB2   (0x1 << 4)
-#define  CAN_ERROR_TX_TRANSMISSION_ERR_MB2   (0x1 << 5)
-#define  CAN_ERROR_RX_FIFO0_OVERRRUN         (0x1 << 6)
-#define  CAN_ERROR_RX_FIFO0_FULL             (0x1 << 7)
-#define  CAN_ERROR_RX_FIFO1_OVERRRUN         (0x1 << 6)
-#define  CAN_ERROR_RX_FIFO1_FULL             (0x1 << 7)
-#define  CAN_ERROR_ERR_WARNING_LIMIT         (0x1 << 8)
-#define  CAN_ERROR_ERR_PASSIVE_LIMIT         (0x1 << 9)
+#define  CAN_ERROR_TX_ARBITRATION_LOST_MB0   (0x1 <<  0)
+#define  CAN_ERROR_TX_TRANSMISSION_ERR_MB0   (0x1 <<  1)
+#define  CAN_ERROR_TX_ARBITRATION_LOST_MB1   (0x1 <<  2)
+#define  CAN_ERROR_TX_TRANSMISSION_ERR_MB1   (0x1 <<  3)
+#define  CAN_ERROR_TX_ARBITRATION_LOST_MB2   (0x1 <<  4)
+#define  CAN_ERROR_TX_TRANSMISSION_ERR_MB2   (0x1 <<  5)
+#define  CAN_ERROR_RX_FIFO0_OVERRRUN         (0x1 <<  6)
+#define  CAN_ERROR_RX_FIFO0_FULL             (0x1 <<  7)
+#define  CAN_ERROR_RX_FIFO1_OVERRRUN         (0x1 <<  6)
+#define  CAN_ERROR_RX_FIFO1_FULL             (0x1 <<  7)
+#define  CAN_ERROR_ERR_WARNING_LIMIT         (0x1 <<  8)
+#define  CAN_ERROR_ERR_PASSIVE_LIMIT         (0x1 <<  9)
 #define  CAN_ERROR_ERR_BUS_OFF               (0x1 << 10)
 #define  CAN_ERROR_ERR_LEC_STUFF             (0x1 << 11)
 #define  CAN_ERROR_ERR_LEC_FROM              (0x1 << 12)
@@ -82,7 +85,7 @@ typedef uint32_t can_error_t;
 #define  CAN_ERROR_ERR_LEC_BD                (0x1 << 15)
 #define  CAN_ERROR_ERR_LEC_CRC               (0x1 << 16)
 
-/* Called by the driver's IRQ handler to signal an event to the app */
+
 void can_event(__in can_event_t event,
                __in can_port_t  port,
                __in can_error_t errcode);
@@ -132,17 +135,20 @@ typedef enum {
 
 
 typedef enum {
-  CAN_SPEED_1MHZ,
+  CAN_SPEED_1MBit_s,   //   30 m
 /* bit rates common to any targets */
 #if CONFIG_CAN_TARGET_VEHICLES
 /* bit rates specific to vehicles */
-  CAN_SPEED_512KHZ,
+  CAN_SPEED_500kBit_s, //  100 m
+  CAN_SPEED_250kBit_s, //  250 m
+  CAN_SPEED_125kBit_s, //  500 m
+  CAN_SPEED_100kBit_s
 #endif
-#if CONFIG_CAN_TARGET_AUTOMATON
+#if CONFIG_CAN_TARGET_AUTOMATONS
 /* bit rates specific to industrial automaton */
-  CAN_SPEED_384KHZ
+  CAN_SPEED_384kBit_s
 #endif
-} can_bit_r_t;
+} can_bit_rate_t;
 
 /* CAN message header
  * it uses an id format standard or extended, depending on the IDE field:
@@ -200,20 +206,20 @@ typedef union {
  */
 typedef struct {
     /* about infos set at declare time by uper layer **/
-    can_port_t    id;              /*< CAN port identifier */
-    can_mode_t    mode;            /*< CAN mode (normal, silent (debug) or loopback (debug)) */
-    can_access_t  access;          /*< CAN access mode (poll or IT based) */
-    bool          timetrigger;     /* Time triggered communication mode */
-    bool          autobusoff;      /* auto bus-off mgmt */
-    bool          autowakeup;      /* wake up from sleep on event */
-    bool          autoretrans;     /* auto retransmission */
-    bool          rxfifolocked;    /* set Rx Fifo locked against overrun */
-    bool          txfifoprio;      /* set Tx Fifo in chronological order */
-    can_bit_r_t   bit_rate;        /* physical CAN bus bit rate */
+    can_port_t     id;              /* CAN port identifier */
+    can_mode_t     mode;            /* normal, silent (debug) or loopback (debug)) */
+    can_access_t   access;          /* access mode (polling or IT based) */
+    bool           timetrigger;     /* Time triggered communication mode */
+    bool           autobusoff;      /* auto bus-off management */
+    bool           autowakeup;      /* wake up from sleep on event */
+    bool           autoretrans;     /* auto retransmission */
+    bool           rxfifolocked;    /* set Rx Fifo locked against overrun */
+    bool           txfifoprio;      /* set Tx Fifo in chronological order */
+    can_bit_rate_t bit_rate;        /* physical CAN bus bit rate */
     /* about info set at declare and init time by the driver */
-    device_t      can_dev;         /*< CAN associated kernel structure */
-    can_state_t   state;           /*< current state */
-    int           can_dev_handle;  /* device handle returned by kernel */
+    device_t       can_dev;         /* CAN associated kernel structure */
+    can_state_t    state;           /* current state */
+    int            can_dev_handle;  /* device handle returned by kernel */
 } can_context_t;
 
 /* declare the device to the kernel */

@@ -578,10 +578,10 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
 
     if (ctx->txfifoprio) {
         /* TX Fifo priority is driven by : */
-        /*  1. The requests chronological order  */
+        /*    1. The chronological order of the requests */
         set_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_TXFP_Msk);
     } else {
-        /* 0. The identifier field of the message */
+        /*   0. The identifier field of the message */
         clear_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_TXFP_Msk);
     }
 
@@ -614,56 +614,93 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
     *
     * Set TS1, TS2 and prescaler so as to get the proper values...
     * See RM0090 6.1.3 page 152 and BTR register.
+    *           32.7.7 page 1093
     *
-    * The baud rate is the inverse of the Nominal Bit Time
+    * The Bit Rate is the inverse of the Nominal Bit Time
     *   1 / br = t_q + t_BS1 + t_BS2
     * Bit Segment 1 : t_BS1 = (TS1 +1) * t_q
     * Bit Segment 2 : t_BS2 = (TS2 +1) * t_q
-    *   1 / br = (TS1 + TS2 +3)*t_q
+    *   1 / br = t_BS1 + t_BS2 + t_q = (TS1 + TS2 +3)*t_q
     *
     *  Time quantum : t_q = (BRP +1) * t_p_apb1_clk,
-    *  with BRP as Baud Rate Prescaler, that divides the APB1 clock frequency.
+    *  with BRP as Baud Rate Prescaler, that divides the APB1 clock frequency,
+    *  to produce br. br = APB1_freq / brp = APB1_freq / (BRP +1).
+    *  with APB1_freq = CONFIG_CORE_FREQUENCY / CONFIG_APB1_DIVISOR;
+    *
+    * The values here are taken from http://www.bittiming.can-wiki.info/#STMicro
     */
-    static const uint32_t APB1_freq = CONFIG_CORE_FREQUENCY / CONFIG_APB1_DIVISOR;
-    uint32_t brp, ts1, ts2, sjw;
 
-    sjw = 1;  // synchronization jump width = SJW * t_q
+    uint32_t brp, bs1, bs2, sjw;
+    sjw = 1;  // synchronization jump width = sjw * t_q
 
     switch (ctx->bit_rate) {
-      case CAN_SPEED_1MHZ:
-        ts1 = 12;
-        ts2 =  6;
-        brp = APB1_freq / (1000000 * (ts1 + ts2 + 3)) -1;
+      case CAN_SPEED_1MBit_s:
+        brp =  3;
+        bs1 = 11;
+        bs2 =  2;
+        break;
+      case CAN_SPEED_500kBit_s:
+        brp =  6;
+        bs1 = 11;
+        bs2 =  2;
         break;
 
-      default:
-        ts1 = 14;
-        ts2 =  6;
-        brp =  3;
+#if CONFIG_CAN_TARGET_AUTOMATONS
+      // This values need to be tested.
+      case CAN_SPEED_384kBit_s:
+        brp =  7;
+        bs1 = 12;
+        bs2 =  2;
+        break;
+#endif
+
+      case CAN_SPEED_250kBit_s:
+        brp = 12;
+        bs1 = 11;
+        bs2 =  2;
+        break;
+      case CAN_SPEED_125kBit_s:
+        brp = 21;
+        bs1 = 13;
+        bs2 =  2;
+        break;
+      case CAN_SPEED_100kBit_s:
+        brp = 28;
+        bs1 = 12;
+        bs2 =  2;
+        break;
+
+      default:  // 1 MBit/s.
+        brp =  2;
+        bs1 = 13;
+        bs2 =  7;
     }
+    set_reg(r_CANx_BTR(ctx->id), brp -1, CAN_BTR_BRP);
+    set_reg(r_CANx_BTR(ctx->id), bs1 -1, CAN_BTR_TS1);
+    set_reg(r_CANx_BTR(ctx->id), bs2 -1, CAN_BTR_TS2);
+    set_reg(r_CANx_BTR(ctx->id), sjw -1, CAN_BTR_SJW);
 
-     set_reg(r_CANx_BTR(ctx->id), brp, CAN_BTR_BRP);
-     set_reg(r_CANx_BTR(ctx->id), ts1, CAN_BTR_TS1);
-     set_reg(r_CANx_BTR(ctx->id), ts2, CAN_BTR_TS2);
-     set_reg(r_CANx_BTR(ctx->id), sjw, CAN_BTR_SJW);
 
+    /* Reset filtering */
 
     /* Enter filter initialization mode : deactivate reception of messages */
     set_reg_bits(r_CAN_FMR, CAN_FMR_FINIT_Msk);
-    /* Half of the filters for CAN1 and half for CAN2 (Reset value)*/
-    set_reg(r_CAN_FMR, CAN_MAX_FILTERS / 2, CAN_FMR_CAN2SB);
-    /* Now reset only the filters of the CAN that is initialized */
+    /* Define the start of the bank of filters for CAN2.
+     * Half of the filters for CAN1 and half for CAN2 (Reset value)*/
+    set_reg(r_CAN_FMR, 14, CAN_FMR_CAN2SB);
+
+    /* Now reset only the filters for the CAN that is initialized */
     if (ctx->id == 1) {
-        /* For CAN 1, reset filtering : everything on FIFO 0 */
+        /* For CAN 1, reset filtering to everything on FIFO 0 */
         clear_reg_bits(r_CAN_FM1R,  CAN_FILTERS_LOWER_HALF_Msk); // ID mask mode.
-        set_reg_bits  (r_CAN_FS1R,  CAN_FILTERS_LOWER_HALF_Msk); // 32 bits.
+        set_reg_bits  (r_CAN_FS1R,  CAN_FILTERS_LOWER_HALF_Msk); // 32 bit scale.
         clear_reg_bits(r_CAN_FFA1R, CAN_FILTERS_LOWER_HALF_Msk); // FIFO 0.
-         *r_CAN_F0R1  = 0; // Filter #0, ID can be anything.
+         *r_CAN_F0R1  = 0; // Filter #0, ID 0.
          *r_CAN_F0R2  = 0; // Filter #0, bit mask at 0 = Don't care !
          set_reg(r_CAN_FA1R, 1, CAN_FILTERS_LOWER_HALF); // Filter #0 is activated !
     } else
     if (ctx->id == 2) {
-        /* For CAN 2, reset filtering : everything on FIFO 0 */
+        /* For CAN 2, reset filtering to everything on FIFO 0 */
         clear_reg_bits(r_CAN_FM1R,  CAN_FILTERS_UPPER_HALF_Msk); // ID mask mode.
         set_reg_bits  (r_CAN_FS1R,  CAN_FILTERS_UPPER_HALF_Msk); // 32 bits.
         clear_reg_bits(r_CAN_FFA1R, CAN_FILTERS_UPPER_HALF_Msk); // FIFO 0.
