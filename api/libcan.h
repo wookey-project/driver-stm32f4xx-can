@@ -64,27 +64,27 @@ typedef enum {
  * Error codes bit fields
  */
 typedef uint32_t can_error_t;
-#define  CAN_ERROR_NONE                       0x0
-#define  CAN_ERROR_TX_ARBITRATION_LOST_MB0   (0x1 <<  0)
-#define  CAN_ERROR_TX_TRANSMISSION_ERR_MB0   (0x1 <<  1)
-#define  CAN_ERROR_TX_ARBITRATION_LOST_MB1   (0x1 <<  2)
-#define  CAN_ERROR_TX_TRANSMISSION_ERR_MB1   (0x1 <<  3)
-#define  CAN_ERROR_TX_ARBITRATION_LOST_MB2   (0x1 <<  4)
-#define  CAN_ERROR_TX_TRANSMISSION_ERR_MB2   (0x1 <<  5)
-#define  CAN_ERROR_RX_FIFO0_OVERRRUN         (0x1 <<  6)
-#define  CAN_ERROR_RX_FIFO0_FULL             (0x1 <<  7)
-#define  CAN_ERROR_RX_FIFO1_OVERRRUN         (0x1 <<  6)
-#define  CAN_ERROR_RX_FIFO1_FULL             (0x1 <<  7)
-#define  CAN_ERROR_ERR_WARNING_LIMIT         (0x1 <<  8)
-#define  CAN_ERROR_ERR_PASSIVE_LIMIT         (0x1 <<  9)
-#define  CAN_ERROR_ERR_BUS_OFF               (0x1 << 10)
-#define  CAN_ERROR_ERR_LEC_STUFF             (0x1 << 11)
-#define  CAN_ERROR_ERR_LEC_FROM              (0x1 << 12)
-#define  CAN_ERROR_ERR_LEC_ACK               (0x1 << 13)
-#define  CAN_ERROR_ERR_LEC_BR                (0x1 << 14)
-#define  CAN_ERROR_ERR_LEC_BD                (0x1 << 15)
-#define  CAN_ERROR_ERR_LEC_CRC               (0x1 << 16)
-
+#define CAN_ERROR_NONE                       0x0
+#define CAN_ERROR_TX_ARBITRATION_LOST_MB0   (0x1 <<  0)
+#define CAN_ERROR_TX_TRANSMISSION_ERR_MB0   (0x1 <<  1)
+#define CAN_ERROR_TX_ARBITRATION_LOST_MB1   (0x1 <<  2)
+#define CAN_ERROR_TX_TRANSMISSION_ERR_MB1   (0x1 <<  3)
+#define CAN_ERROR_TX_ARBITRATION_LOST_MB2   (0x1 <<  4)
+#define CAN_ERROR_TX_TRANSMISSION_ERR_MB2   (0x1 <<  5)
+#define CAN_ERROR_RX_FIFO0_OVERRRUN         (0x1 <<  6)
+#define CAN_ERROR_RX_FIFO0_FULL             (0x1 <<  7)
+#define CAN_ERROR_RX_FIFO1_OVERRRUN         (0x1 <<  8)
+#define CAN_ERROR_RX_FIFO1_FULL             (0x1 <<  9)
+#define CAN_ERROR_FLAG_WARNING_LIMIT        (0x1 << 10)
+#define CAN_ERROR_FLAG_PASSIVE_LIMIT        (0x1 << 11)
+#define CAN_ERROR_FLAG_BUS_OFF_STATUS       (0x1 << 12)
+#define CAN_ERROR_LEC_STUFF                 (0x1 << 13)
+#define CAN_ERROR_LEC_FORM                  (0x1 << 14)
+#define CAN_ERROR_LEC_ACKNOWLEDGMENT        (0x1 << 15)
+#define CAN_ERROR_LEC_RECESSIVE_BIT         (0x1 << 16)
+#define CAN_ERROR_LEC_DOMINANT_BIT          (0x1 << 17)
+#define CAN_ERROR_LEC_CRC                   (0x1 << 18)
+#define CAN_ERROR_LEC_SET_BY_SOFTWARE       (0x1 << 19)
 
 void can_event(__in can_event_t event,
                __in can_port_t  port,

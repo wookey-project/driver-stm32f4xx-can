@@ -198,36 +198,38 @@ static void can_IRQHandler(uint8_t irq,
 
             /* calculating error mask. ESR has already been acknowledged by PH */
             if ((esr & CAN_ESR_EWGF_Msk) != 0) {
-              err |= CAN_ERROR_ERR_WARNING_LIMIT;
+              err |= CAN_ERROR_FLAG_WARNING_LIMIT;
             }
             if ((esr & CAN_ESR_EPVF_Msk) != 0) {
-              err |= CAN_ERROR_ERR_PASSIVE_LIMIT;
+              err |= CAN_ERROR_FLAG_PASSIVE_LIMIT;
             }
             if ((esr & CAN_ESR_BOFF_Msk) != 0) {
-              err |= CAN_ERROR_ERR_BUS_OFF;
+              err |= CAN_ERROR_FLAG_BUS_OFF_STATUS;
             }
 
             if ((esr & CAN_ESR_LEC_Msk) != 0) {
                uint32_t lec = ((esr & CAN_ESR_LEC_Msk) >> CAN_ESR_LEC_Pos);
                switch (lec) {
-                  case 0x0:
-                     err |= CAN_ERROR_ERR_LEC_STUFF;
+                  case 0x1:
+                     err |= CAN_ERROR_LEC_STUFF;
                      break;
-                   case 0x1:
-                     err |= CAN_ERROR_ERR_LEC_FROM;
+                   case 0x2:
+                     err |= CAN_ERROR_LEC_FORM;
                      break;
                    case 0x3:
-                     err |= CAN_ERROR_ERR_LEC_ACK;
+                     err |= CAN_ERROR_LEC_ACKNOWLEDGMENT;
                      break;
                    case 0x4:
-                      err |= CAN_ERROR_ERR_LEC_BR;
+                      err |= CAN_ERROR_LEC_RECESSIVE_BIT;
                       break;
                    case 0x5:
-                       err |= CAN_ERROR_ERR_LEC_BD;
+                       err |= CAN_ERROR_LEC_DOMINANT_BIT;
                        break;
                   case 0x6:
-                       err |= CAN_ERROR_ERR_LEC_CRC;
+                       err |= CAN_ERROR_LEC_CRC;
                        break;
+                  case 0x7:
+                       err |= CAN_ERROR_LEC_SET_BY_SOFTWARE;
                   default:
                        break;
                }
