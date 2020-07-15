@@ -633,7 +633,7 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
     */
 
     uint32_t brp, bs1, bs2, sjw;
-    sjw = 1;  // synchronization jump width = sjw * t_q
+    sjw = 3;  // synchronization jump width = sjw * t_q
 
     switch (ctx->bit_rate) {
       case CAN_SPEED_1MBit_s:
@@ -694,6 +694,7 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
     /* Now reset only the filters for the CAN that is initialized */
     if (ctx->id == 1) {
         /* For CAN 1, reset filtering to everything on FIFO 0 */
+        set_reg(r_CAN_FA1R, 0, CAN_FILTERS_LOWER_HALF); // No Filter activated !
         clear_reg_bits(r_CAN_FM1R,  CAN_FILTERS_LOWER_HALF_Msk); // ID mask mode.
         set_reg_bits  (r_CAN_FS1R,  CAN_FILTERS_LOWER_HALF_Msk); // 32 bit scale.
         clear_reg_bits(r_CAN_FFA1R, CAN_FILTERS_LOWER_HALF_Msk); // FIFO 0.
@@ -703,6 +704,7 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
     } else
     if (ctx->id == 2) {
         /* For CAN 2, reset filtering to everything on FIFO 0 */
+        set_reg(r_CAN_FA1R, 0, CAN_FILTERS_UPPER_HALF); // No Filter activated !
         clear_reg_bits(r_CAN_FM1R,  CAN_FILTERS_UPPER_HALF_Msk); // ID mask mode.
         set_reg_bits  (r_CAN_FS1R,  CAN_FILTERS_UPPER_HALF_Msk); // 32 bits.
         clear_reg_bits(r_CAN_FFA1R, CAN_FILTERS_UPPER_HALF_Msk); // FIFO 0.
@@ -761,12 +763,12 @@ mbed_error_t can_set_filters(__in can_context_t *ctx)
         err = MBED_ERROR_INVPARAM;
     }
 
-    /* Enter filter initialization : deactivate the reception of mesages */
+    /* Enter filter initialization : deactivate the reception of messages */
     set_reg_bits(r_CAN_FMR, CAN_FMR_FINIT_Msk);
 
         /* TODO handle communication filters */
 
-    /* Quit Filter initialization : reactivate the reception of mesages */
+    /* Quit Filter initialization : reactivate the reception of messages */
     clear_reg_bits(r_CAN_FMR, CAN_FMR_FINIT_Msk);
 
     return err;
