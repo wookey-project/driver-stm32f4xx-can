@@ -248,7 +248,7 @@ mbed_error_t can_start(__inout can_context_t *ctx);
 mbed_error_t can_stop(__inout can_context_t *ctx);
 
 /* send data into one of the CAN Tx FIFO */
-mbed_error_t can_xmit(const __in  can_context_t *ctx,
+mbed_error_t can_emit(const __in  can_context_t *ctx,
                             __in  can_header_t  *header,
                             __in  can_data_t    *data,
                             __out can_mbox_t    *mbox);

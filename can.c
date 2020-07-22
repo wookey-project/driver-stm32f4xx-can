@@ -692,7 +692,7 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
     set_reg(r_CAN_FMR, 14, CAN_FMR_CAN2SB);
 
     /* Now reset only the filters for the CAN that is initialized */
-    if (ctx->id == 1) {
+    if (ctx->id == CAN_PORT_1) {
         /* For CAN 1, reset filtering to everything on FIFO 0 */
         set_reg(r_CAN_FA1R, 0, CAN_FILTERS_LOWER_HALF); // No Filter activated !
         clear_reg_bits(r_CAN_FM1R,  CAN_FILTERS_LOWER_HALF_Msk); // ID mask mode.
@@ -702,7 +702,7 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
          *r_CAN_F0R2  = 0; // Filter #0, bit mask at 0 = Don't care !
          set_reg(r_CAN_FA1R, 1, CAN_FILTERS_LOWER_HALF); // Filter #0 is activated !
     } else
-    if (ctx->id == 2) {
+    if (ctx->id == CAN_PORT_2) {
         /* For CAN 2, reset filtering to everything on FIFO 0 */
         set_reg(r_CAN_FA1R, 0, CAN_FILTERS_UPPER_HALF); // No Filter activated !
         clear_reg_bits(r_CAN_FM1R,  CAN_FILTERS_UPPER_HALF_Msk); // ID mask mode.
@@ -857,7 +857,7 @@ mbed_error_t can_stop(__inout can_context_t *ctx)
  *
  * Send data using the first empty CAN Tx mailbox.
  *******************************************************************************/
-mbed_error_t can_xmit(const __in  can_context_t *ctx,
+mbed_error_t can_emit(const __in  can_context_t *ctx,
                             __in  can_header_t  *header,
                             __in  can_data_t    *data,
                             __out can_mbox_t    *mbox)
@@ -882,7 +882,7 @@ mbed_error_t can_xmit(const __in  can_context_t *ctx,
     /* select the first empty mailbox in order */
     tme = get_reg_value(r_CANx_TSR(ctx->id), CAN_TSR_TME_Msk, CAN_TSR_TME_Pos);
     if (tme == 0x0) {
-        /* no mailbox empty */
+        /* no empty mailbox */
         errcode = MBED_ERROR_BUSY;
         goto err;
     }
@@ -912,7 +912,7 @@ mbed_error_t can_xmit(const __in  can_context_t *ctx,
         goto err;
     }
 
-    /* about the header */
+    /* about the ID */
     if ((header->IDE == CAN_ID_STD) && (header->id <= 0x7ff)) {
         clear_reg_bits(can_tixr, CAN_TIxR_IDE_Msk);
         set_reg_value(can_tixr, header->id, CAN_TIxR_STID_Msk,  CAN_TIxR_STID_Pos);
@@ -946,17 +946,17 @@ mbed_error_t can_xmit(const __in  can_context_t *ctx,
       /* Clear RTR bit to ensure that a data frame is emitted */
       clear_reg_bits(can_tixr, CAN_TIxR_RTR_Msk);
       /* and set the body */
-      set_reg_value(can_tdlxr, data->data_fields.data0, CAN_TDLxR_DATA0_Msk, CAN_TDLxR_DATA0_Pos);
-      set_reg_value(can_tdlxr, data->data_fields.data1, CAN_TDLxR_DATA1_Msk, CAN_TDLxR_DATA1_Pos);
-      set_reg_value(can_tdlxr, data->data_fields.data2, CAN_TDLxR_DATA2_Msk, CAN_TDLxR_DATA2_Pos);
-      set_reg_value(can_tdlxr, data->data_fields.data3, CAN_TDLxR_DATA3_Msk, CAN_TDLxR_DATA3_Pos);
-      set_reg_value(can_tdhxr, data->data_fields.data4, CAN_TDHxR_DATA4_Msk, CAN_TDHxR_DATA4_Pos);
-      set_reg_value(can_tdhxr, data->data_fields.data5, CAN_TDHxR_DATA5_Msk, CAN_TDHxR_DATA5_Pos);
-      set_reg_value(can_tdhxr, data->data_fields.data6, CAN_TDHxR_DATA6_Msk, CAN_TDHxR_DATA6_Pos);
-      set_reg_value(can_tdhxr, data->data_fields.data7, CAN_TDHxR_DATA7_Msk, CAN_TDHxR_DATA7_Pos);
+      set_reg_value(can_tdlxr, data->data[0], CAN_TDLxR_DATA0_Msk, CAN_TDLxR_DATA0_Pos);
+      set_reg_value(can_tdlxr, data->data[1], CAN_TDLxR_DATA1_Msk, CAN_TDLxR_DATA1_Pos);
+      set_reg_value(can_tdlxr, data->data[2], CAN_TDLxR_DATA2_Msk, CAN_TDLxR_DATA2_Pos);
+      set_reg_value(can_tdlxr, data->data[3], CAN_TDLxR_DATA3_Msk, CAN_TDLxR_DATA3_Pos);
+      set_reg_value(can_tdhxr, data->data[4], CAN_TDHxR_DATA4_Msk, CAN_TDHxR_DATA4_Pos);
+      set_reg_value(can_tdhxr, data->data[5], CAN_TDHxR_DATA5_Msk, CAN_TDHxR_DATA5_Pos);
+      set_reg_value(can_tdhxr, data->data[6], CAN_TDHxR_DATA6_Msk, CAN_TDHxR_DATA6_Pos);
+      set_reg_value(can_tdhxr, data->data[7], CAN_TDHxR_DATA7_Msk, CAN_TDHxR_DATA7_Pos);
     }
 
-    /* requesting transmission */
+    /* requesting emission */
     set_reg_bits(can_tixr, CAN_TIxR_TXRQ_Msk);
 
     errcode = MBED_ERROR_NONE;
@@ -1032,14 +1032,14 @@ mbed_error_t can_receive(const __in  can_context_t *ctx,
     header->gt  = (uint8_t)get_reg_value(can_rdtxr, CAN_RDTxR_TIME_Msk, CAN_RDTxR_TIME_Pos);
 
     /* get data */
-    data->data_fields.data0 = (uint8_t)get_reg_value(can_rdlxr, CAN_RDLxR_DATA0_Msk, CAN_RDLxR_DATA0_Pos);
-    data->data_fields.data1 = (uint8_t)get_reg_value(can_rdlxr, CAN_RDLxR_DATA1_Msk, CAN_RDLxR_DATA1_Pos);
-    data->data_fields.data2 = (uint8_t)get_reg_value(can_rdlxr, CAN_RDLxR_DATA2_Msk, CAN_RDLxR_DATA2_Pos);
-    data->data_fields.data3 = (uint8_t)get_reg_value(can_rdlxr, CAN_RDLxR_DATA3_Msk, CAN_RDLxR_DATA3_Pos);
-    data->data_fields.data4 = (uint8_t)get_reg_value(can_rdhxr, CAN_RDHxR_DATA4_Msk, CAN_RDHxR_DATA4_Pos);
-    data->data_fields.data5 = (uint8_t)get_reg_value(can_rdhxr, CAN_RDHxR_DATA5_Msk, CAN_RDHxR_DATA5_Pos);
-    data->data_fields.data6 = (uint8_t)get_reg_value(can_rdhxr, CAN_RDHxR_DATA6_Msk, CAN_RDHxR_DATA6_Pos);
-    data->data_fields.data7 = (uint8_t)get_reg_value(can_rdhxr, CAN_RDHxR_DATA7_Msk, CAN_RDHxR_DATA7_Pos);
+    data->data[0] = (uint8_t)get_reg_value(can_rdlxr, CAN_RDLxR_DATA0_Msk, CAN_RDLxR_DATA0_Pos);
+    data->data[1] = (uint8_t)get_reg_value(can_rdlxr, CAN_RDLxR_DATA1_Msk, CAN_RDLxR_DATA1_Pos);
+    data->data[2] = (uint8_t)get_reg_value(can_rdlxr, CAN_RDLxR_DATA2_Msk, CAN_RDLxR_DATA2_Pos);
+    data->data[3] = (uint8_t)get_reg_value(can_rdlxr, CAN_RDLxR_DATA3_Msk, CAN_RDLxR_DATA3_Pos);
+    data->data[4] = (uint8_t)get_reg_value(can_rdhxr, CAN_RDHxR_DATA4_Msk, CAN_RDHxR_DATA4_Pos);
+    data->data[5] = (uint8_t)get_reg_value(can_rdhxr, CAN_RDHxR_DATA5_Msk, CAN_RDHxR_DATA5_Pos);
+    data->data[6] = (uint8_t)get_reg_value(can_rdhxr, CAN_RDHxR_DATA6_Msk, CAN_RDHxR_DATA6_Pos);
+    data->data[7] = (uint8_t)get_reg_value(can_rdhxr, CAN_RDHxR_DATA7_Msk, CAN_RDHxR_DATA7_Pos);
 
     /* release head (mailbox #0) of current FIFO */
     set_reg_bits(can_rfxr, CAN_RFxR_RFOMx_Msk);
