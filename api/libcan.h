@@ -65,25 +65,30 @@ typedef enum {
  */
 typedef uint32_t can_error_t;
 #define CAN_ERROR_NONE                       0x0
+
 #define CAN_ERROR_TX_ARBITRATION_LOST_MBOX0 (0x1 <<  0)
 #define CAN_ERROR_TX_TRANSMISSION_ERR_MBOX0 (0x1 <<  1)
 #define CAN_ERROR_TX_ARBITRATION_LOST_MBOX1 (0x1 <<  2)
 #define CAN_ERROR_TX_TRANSMISSION_ERR_MBOX1 (0x1 <<  3)
+
 #define CAN_ERROR_TX_ARBITRATION_LOST_MBOX2 (0x1 <<  4)
 #define CAN_ERROR_TX_TRANSMISSION_ERR_MBOX2 (0x1 <<  5)
 #define CAN_ERROR_RX_FIFO0_OVERRRUN         (0x1 <<  6)
 #define CAN_ERROR_RX_FIFO0_FULL             (0x1 <<  7)
+
 #define CAN_ERROR_RX_FIFO1_OVERRRUN         (0x1 <<  8)
 #define CAN_ERROR_RX_FIFO1_FULL             (0x1 <<  9)
-#define CAN_ERROR_FLAG_WARNING_LIMIT        (0x1 << 10)
-#define CAN_ERROR_FLAG_PASSIVE_LIMIT        (0x1 << 11)
-#define CAN_ERROR_FLAG_BUS_OFF_STATUS       (0x1 << 12)
-#define CAN_ERROR_LEC_STUFF                 (0x1 << 13)
-#define CAN_ERROR_LEC_FORM                  (0x1 << 14)
-#define CAN_ERROR_LEC_ACKNOWLEDGMENT        (0x1 << 15)
-#define CAN_ERROR_LEC_RECESSIVE_BIT         (0x1 << 16)
-#define CAN_ERROR_LEC_DOMINANT_BIT          (0x1 << 17)
-#define CAN_ERROR_LEC_CRC                   (0x1 << 18)
+#define CAN_ERROR_FLAG_WARNING_LIMIT        (0x1 << 10) //Counter >  96
+#define CAN_ERROR_FLAG_PASSIVE_LIMIT        (0x1 << 11) //Counter > 127
+
+#define CAN_ERROR_FLAG_BUS_OFF_STATUS       (0x1 << 12) //Counter > 255
+#define CAN_ERROR_LEC_STUFF                 (0x1 << 13) //Bit stuffing (6th bit)
+#define CAN_ERROR_LEC_FORM                  (0x1 << 14) //Frame check (invalid)
+#define CAN_ERROR_LEC_ACKNOWLEDGMENT        (0x1 << 15) //Dominant level in slot?
+
+#define CAN_ERROR_LEC_RECESSIVE_BIT         (0x1 << 16) //Bit monitoring
+#define CAN_ERROR_LEC_DOMINANT_BIT          (0x1 << 17) //Bit monitoring
+#define CAN_ERROR_LEC_CRC                   (0x1 << 18) //Cyclic Redundancy Check
 #define CAN_ERROR_LEC_SET_BY_SOFTWARE       (0x1 << 19)
 
 void can_event(__in can_event_t event,
@@ -131,7 +136,7 @@ typedef enum {
 typedef enum {
     CAN_ID_STD = 0,
     CAN_ID_EXT = 1
-} can_id_extention_t;
+} can_id_kind_t;
 
 
 typedef enum {
@@ -156,7 +161,7 @@ typedef enum {
  *  - Extended CAN 2.0B id is on 29 bits (<= 0x1fffffff) */
 typedef struct {
     uint32_t           id;    /*< CAN identifier */
-    can_id_extention_t IDE;   /*< CAN identifier extention type */
+    can_id_kind_t      IDE;   /*< CAN identifier kind : Standard or Extended */
     bool               RTR;   /*< Remote transmission request (data or remote frame) */
     uint8_t            DLC;   /*< Data length */
     uint8_t            FMI;   /*< Filter match (index of filters that have matched (Rx case) */

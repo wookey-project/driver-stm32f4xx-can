@@ -539,7 +539,7 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
     ctx->state = CAN_STATE_INIT;
 
     if (ctx->timetrigger) {
-        /* Time triggered ? */
+        /* Time Trigger Communication Mode */
         set_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_TTCM_Msk);
     } else {
         /* or not... clearing TTCM */
@@ -547,7 +547,7 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
     }
 
     if (ctx->autobusoff) {
-        /* Auto bus off */
+        /* automatically  recover from Bus Off state */
         set_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_ABOM_Msk);
     } else {
         /* or not...  */
@@ -563,10 +563,10 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
     }
 
     if (ctx->autoretrans) {
-        /* Auto retransmission mode */
+        /* Automatic retransmission until successfully transmitted */
         clear_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_NART_Msk);
     } else {
-        /* or not...  */
+        /* message transmitted only once...  */
         set_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_NART_Msk);
     }
 
@@ -913,36 +913,48 @@ mbed_error_t can_xmit(const __in  can_context_t *ctx,
     }
 
     /* about the header */
-    if (header->IDE == CAN_ID_STD) {
+    if ((header->IDE == CAN_ID_STD) && (header->id <= 0x7ff)) {
+        clear_reg_bits(can_tixr, CAN_TIxR_IDE_Msk);
         set_reg_value(can_tixr, header->id, CAN_TIxR_STID_Msk,  CAN_TIxR_STID_Pos);
     } else if (header->IDE == CAN_ID_EXT) {
+        set_reg_bits(can_tixr, CAN_TIxR_IDE_Msk);
         set_reg_value(can_tixr, header->id, CAN_TIxR_EXID_Msk,  CAN_TIxR_EXID_Pos);
     } else { /* invalid header format */
         errcode = MBED_ERROR_INVPARAM;
         goto err;
     }
+
     /* Set data length */
     set_reg_value(can_tdtxr, header->DLC, CAN_TDTxR_DLC_Msk, CAN_TDTxR_DLC_Pos);
 
-    if (header->TGT == true) {
-        /* global time transmission requested */
+    if (header->TGT) {
+        if ((ctx->timetrigger == false) || (header->DLC != 8)) {
+              /* /!\ Hardware must be in Time Trigger Communication Mode */
+              errcode = MBED_ERROR_INVPARAM;
+              goto err;
+            }
+        /* global time transmission is requested, overwritting data6 and data7 */
         set_reg_bits(can_tdtxr, CAN_TDTxR_TGT_Msk);
     } else {
         clear_reg_bits(can_tdtxr, CAN_TDTxR_TGT_Msk);
     }
 
-    /* about the body */
-    set_reg_value(can_tdlxr, data->data_fields.data0, CAN_TDLxR_DATA0_Msk, CAN_TDLxR_DATA0_Pos);
-    set_reg_value(can_tdlxr, data->data_fields.data1, CAN_TDLxR_DATA1_Msk, CAN_TDLxR_DATA1_Pos);
-    set_reg_value(can_tdlxr, data->data_fields.data2, CAN_TDLxR_DATA2_Msk, CAN_TDLxR_DATA2_Pos);
-    set_reg_value(can_tdlxr, data->data_fields.data3, CAN_TDLxR_DATA3_Msk, CAN_TDLxR_DATA3_Pos);
-    set_reg_value(can_tdhxr, data->data_fields.data4, CAN_TDHxR_DATA4_Msk, CAN_TDHxR_DATA4_Pos);
-    set_reg_value(can_tdhxr, data->data_fields.data5, CAN_TDHxR_DATA5_Msk, CAN_TDHxR_DATA5_Pos);
-    set_reg_value(can_tdhxr, data->data_fields.data6, CAN_TDHxR_DATA6_Msk, CAN_TDHxR_DATA6_Pos);
-    set_reg_value(can_tdhxr, data->data_fields.data7, CAN_TDHxR_DATA7_Msk, CAN_TDHxR_DATA7_Pos);
-
-    /* Clear RTR bit to ensure that a data frame is emitted */
-    clear_reg_bits(can_tixr, CAN_TIxR_RTR_Msk);
+    if (header->RTR) {
+      /* Set RTR bit to signal a Remote Transmission Request  */
+      set_reg_bits(can_tixr, CAN_TIxR_RTR_Msk);
+    } else {
+      /* Clear RTR bit to ensure that a data frame is emitted */
+      clear_reg_bits(can_tixr, CAN_TIxR_RTR_Msk);
+      /* and set the body */
+      set_reg_value(can_tdlxr, data->data_fields.data0, CAN_TDLxR_DATA0_Msk, CAN_TDLxR_DATA0_Pos);
+      set_reg_value(can_tdlxr, data->data_fields.data1, CAN_TDLxR_DATA1_Msk, CAN_TDLxR_DATA1_Pos);
+      set_reg_value(can_tdlxr, data->data_fields.data2, CAN_TDLxR_DATA2_Msk, CAN_TDLxR_DATA2_Pos);
+      set_reg_value(can_tdlxr, data->data_fields.data3, CAN_TDLxR_DATA3_Msk, CAN_TDLxR_DATA3_Pos);
+      set_reg_value(can_tdhxr, data->data_fields.data4, CAN_TDHxR_DATA4_Msk, CAN_TDHxR_DATA4_Pos);
+      set_reg_value(can_tdhxr, data->data_fields.data5, CAN_TDHxR_DATA5_Msk, CAN_TDHxR_DATA5_Pos);
+      set_reg_value(can_tdhxr, data->data_fields.data6, CAN_TDHxR_DATA6_Msk, CAN_TDHxR_DATA6_Pos);
+      set_reg_value(can_tdhxr, data->data_fields.data7, CAN_TDHxR_DATA7_Msk, CAN_TDHxR_DATA7_Pos);
+    }
 
     /* requesting transmission */
     set_reg_bits(can_tixr, CAN_TIxR_TXRQ_Msk);
