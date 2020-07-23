@@ -280,11 +280,11 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
            ctx->can_dev.address = can1_dev_infos.address;
            ctx->can_dev.size    = can1_dev_infos.size;
 	         ctx->can_dev.gpio_num = 2;
-	         ctx->can_dev.gpios[0].kref.port = can1_dev_infos.gpios[CAN1_TD].port;
-	         ctx->can_dev.gpios[0].kref.pin  = can1_dev_infos.gpios[CAN1_TD].pin;
+	         ctx->can_dev.gpios[0].kref.port = can1_dev_infos.gpios[CAN1_TX].port;
+	         ctx->can_dev.gpios[0].kref.pin  = can1_dev_infos.gpios[CAN1_TX].pin;
 
-           ctx->can_dev.gpios[1].kref.port = can1_dev_infos.gpios[CAN1_RD].port;
-           ctx->can_dev.gpios[1].kref.pin  = can1_dev_infos.gpios[CAN1_RD].pin;
+           ctx->can_dev.gpios[1].kref.port = can1_dev_infos.gpios[CAN1_RX].port;
+           ctx->can_dev.gpios[1].kref.pin  = can1_dev_infos.gpios[CAN1_RX].pin;
            break;
 
         /* CAN 2 */
@@ -293,11 +293,11 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
            ctx->can_dev.address = can2_dev_infos.address;
            ctx->can_dev.size    = can2_dev_infos.size;
            ctx->can_dev.gpio_num = 2;
-           ctx->can_dev.gpios[0].kref.port = can2_dev_infos.gpios[CAN2_TD].port;
-           ctx->can_dev.gpios[0].kref.pin  = can2_dev_infos.gpios[CAN2_TD].pin;
+           ctx->can_dev.gpios[0].kref.port = can2_dev_infos.gpios[CAN2_TX].port;
+           ctx->can_dev.gpios[0].kref.pin  = can2_dev_infos.gpios[CAN2_TX].pin;
 
-           ctx->can_dev.gpios[1].kref.port = can2_dev_infos.gpios[CAN2_RD].port;
-           ctx->can_dev.gpios[1].kref.pin  = can2_dev_infos.gpios[CAN2_RD].pin;
+           ctx->can_dev.gpios[1].kref.port = can2_dev_infos.gpios[CAN2_RX].port;
+           ctx->can_dev.gpios[1].kref.pin  = can2_dev_infos.gpios[CAN2_RX].pin;
            break;
 
         default:
