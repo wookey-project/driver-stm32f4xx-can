@@ -195,16 +195,29 @@ static void can_IRQHandler(uint8_t irq,
         /* Errors */
         if ((msr & CAN_MSR_ERRI_Msk) != 0) {
             /* MSR:ERRI already acknowledged by PH */
+            /* calculating error mask. */
 
-            /* calculating error mask. ESR has already been acknowledged by PH */
-            if ((esr & CAN_ESR_EWGF_Msk) != 0) {
-              err |= CAN_ERROR_FLAG_WARNING_LIMIT;
-            }
-            if ((esr & CAN_ESR_EPVF_Msk) != 0) {
-              err |= CAN_ERROR_FLAG_PASSIVE_LIMIT;
-            }
+            /* Error flags */
             if ((esr & CAN_ESR_BOFF_Msk) != 0) {
               err |= CAN_ERROR_FLAG_BUS_OFF_STATUS;
+            } else {
+              if ((esr & CAN_ESR_EPVF_Msk) != 0) {
+                err |= CAN_ERROR_FLAG_PASSIVE_LIMIT;
+                /* we reallow Bus Off detection */
+                set_reg_bits(r_CANx_IER(canid), CAN_IER_BOFIE_Msk);
+              } else {
+                /* we reallow both Passive Limit and Bus Off detection */
+                set_reg_bits(r_CANx_IER(canid), CAN_IER_EPVIE_Msk |
+                                                CAN_IER_BOFIE_Msk);
+                if ((esr & CAN_ESR_EWGF_Msk) != 0) {
+                   err |= CAN_ERROR_FLAG_WARNING_LIMIT;
+                } else {
+                   /* we reallow all flags */
+                   set_reg_bits(r_CANx_IER(canid), CAN_IER_EPVIE_Msk |
+                                                   CAN_IER_BOFIE_Msk |
+                                                   CAN_IER_EWGIE_Msk);
+                }
+              }
             }
 
             if ((esr & CAN_ESR_LEC_Msk) != 0) {
@@ -237,6 +250,8 @@ static void can_IRQHandler(uint8_t irq,
             if (err != CAN_ERROR_NONE) {
                 can_event(CAN_EVENT_ERROR, canid, err);
             }
+            /* We reallow new errors from ESR */
+            //set_reg_bits(r_CANx_IER(canid), CAN_IER_ERRIE_Msk);
         } /* End if Errors */
     } /* End switch (interrupt) */
 err:
@@ -478,14 +493,8 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
         ctx->can_dev.irqs[3].posthook.action[3].write.offset = CAN_IER;
         ctx->can_dev.irqs[3].posthook.action[3].write.value  = 0;
         ctx->can_dev.irqs[3].posthook.action[3].write.mask   =
-              CAN_IER_ERRIE_Msk | CAN_IER_LECIE_Msk
+              CAN_IER_ERRIE_Msk
             | CAN_IER_BOFIE_Msk | CAN_IER_EPVIE_Msk | CAN_IER_EWGIE_Msk;
-        /* Set ESR:LEC[0:2] to 0b111 to clear the error number */
-        ctx->can_dev.irqs[3].posthook.action[4].instr = IRQ_PH_WRITE;
-        ctx->can_dev.irqs[3].posthook.action[4].write.offset = CAN_ESR;
-        ctx->can_dev.irqs[3].posthook.action[4].write.value  = 0xFFFF;
-        ctx->can_dev.irqs[3].posthook.action[4].write.mask   = CAN_ESR_LEC_Msk;
-
     }
 
     /* ... and declare the CAN device */
@@ -793,6 +802,8 @@ mbed_error_t can_start(__inout can_context_t *ctx)
         uint32_t ier_val = 0;
         ier_val = CAN_IER_ERRIE_Msk  |
                   CAN_IER_BOFIE_Msk  |
+                  CAN_IER_EPVIE_Msk  |
+                  CAN_IER_EWGIE_Msk  |
                   CAN_IER_FOVIE0_Msk |
                   CAN_IER_FOVIE1_Msk |
                   CAN_IER_FFIE0_Msk  |
