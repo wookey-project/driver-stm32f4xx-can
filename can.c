@@ -251,7 +251,7 @@ static void can_IRQHandler(uint8_t irq,
                 can_event(CAN_EVENT_ERROR, canid, err);
             }
             /* We reallow new errors from ESR */
-            //set_reg_bits(r_CANx_IER(canid), CAN_IER_ERRIE_Msk);
+            set_reg_bits(r_CANx_IER(canid), CAN_IER_ERRIE_Msk);
         } /* End if Errors */
     } /* End switch (interrupt) */
 err:
@@ -339,9 +339,9 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
     ctx->can_dev.gpios[1].afr   = GPIO_AF_AF9; /* AF for CAN1 & CAN2 */
 
     if (ctx->access == CAN_ACCESS_POLL) {
-        ctx->can_dev.irq_num = 0; // Access by polling. No IRQs.
+        ctx->can_dev.irq_num = 0; // Access by polling : no IRQs.
     } else {
-        ctx->can_dev.irq_num = 4; // Access by interrupts.
+        ctx->can_dev.irq_num = 4; // Access by interrupts : 4 IRQs.
 
         /* TX interrupt is the consequence of RQCPx bits being set,
          * in register TSR.
@@ -368,22 +368,12 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
         ctx->can_dev.irqs[0].posthook.action[0].read.offset = CAN_MSR;
         ctx->can_dev.irqs[0].posthook.action[1].instr = IRQ_PH_READ;
         ctx->can_dev.irqs[0].posthook.action[1].read.offset = CAN_TSR;
-        /* clear TSR: RQCP0 */
+        /* clear TSR: RQCP0, RQCP1, RQCP2 (/!\ rc_w1 : clear by writing 1) */
         ctx->can_dev.irqs[0].posthook.action[2].instr = IRQ_PH_WRITE;
         ctx->can_dev.irqs[0].posthook.action[2].write.offset = CAN_TSR;
-        ctx->can_dev.irqs[0].posthook.action[2].write.value  = 0;
-        ctx->can_dev.irqs[0].posthook.action[2].write.mask   = CAN_TSR_RQCP0_Msk;
-        /* clear TSR: RQCP1 */
-        ctx->can_dev.irqs[0].posthook.action[3].instr = IRQ_PH_WRITE;
-        ctx->can_dev.irqs[0].posthook.action[3].write.offset = CAN_TSR;
-        ctx->can_dev.irqs[0].posthook.action[3].write.value  = 0;
-        ctx->can_dev.irqs[0].posthook.action[3].write.mask   = CAN_TSR_RQCP2_Msk;
-        /* clear TSR: RQCP2 */
-        ctx->can_dev.irqs[0].posthook.action[4].instr = IRQ_PH_WRITE;
-        ctx->can_dev.irqs[0].posthook.action[4].write.offset = CAN_TSR;
-        ctx->can_dev.irqs[0].posthook.action[4].write.value  = 0;
-        ctx->can_dev.irqs[0].posthook.action[4].write.mask   = CAN_TSR_RQCP2_Msk;
-
+        ctx->can_dev.irqs[0].posthook.action[2].write.value  = 0xFFFFFFFF;
+        ctx->can_dev.irqs[0].posthook.action[2].write.mask   =
+            CAN_TSR_RQCP0_Msk | CAN_TSR_RQCP1_Msk | CAN_TSR_RQCP2_Msk;
 
         /* RX0 interrupt is the consequence of RF0R register bits being
          * set, see STRM00090, chap 32.8   (CAN Interrupts)    fig. 348
@@ -455,6 +445,8 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
         ctx->can_dev.irqs[2].posthook.action[2].write.mask   =
              CAN_IER_FMPIE1_Msk | CAN_IER_FFIE1_Msk | CAN_IER_FOVIE1_Msk;
 
+
+
         /* The Status Change SCE interrupt is the consequence of :
          * a. the MSR register bits being set,
          * b. the ESR register bits being set,
@@ -481,14 +473,15 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
         ctx->can_dev.irqs[3].posthook.action[0].read.offset = CAN_MSR;
         ctx->can_dev.irqs[3].posthook.action[1].instr = IRQ_PH_READ;
         ctx->can_dev.irqs[3].posthook.action[1].read.offset = CAN_ESR;
-        /* clear MSR:SLAKI, WKUI & ERRI (previous values saved in variables
-         * "status" and "data") */
+        /* clear MSR:SLAKI, WKUI & ERRI (/!\ rc_w1 : cleared by writing 1)
+         * previous values saved in variables "status" and "data" of the
+         * IRQ handler) */
         ctx->can_dev.irqs[3].posthook.action[2].instr = IRQ_PH_WRITE;
         ctx->can_dev.irqs[3].posthook.action[2].write.offset = CAN_MSR;
-        ctx->can_dev.irqs[3].posthook.action[2].write.value  = 0;
+        ctx->can_dev.irqs[3].posthook.action[2].write.value  = 0xFFFFFFFF;
         ctx->can_dev.irqs[3].posthook.action[2].write.mask   =
            CAN_MSR_SLAKI_Msk | CAN_MSR_WKUI_Msk | CAN_MSR_ERRI_Msk;
-        /* Inhibate error interrupt while the error is still there */
+        /* We mask in the kernel the sources of the SCE interrupt */
         ctx->can_dev.irqs[3].posthook.action[3].instr = IRQ_PH_WRITE;
         ctx->can_dev.irqs[3].posthook.action[3].write.offset = CAN_IER;
         ctx->can_dev.irqs[3].posthook.action[3].write.value  = 0;
@@ -797,8 +790,13 @@ mbed_error_t can_start(__inout can_context_t *ctx)
         return MBED_ERROR_INVSTATE;
     }
 
-    /* enable CAN interrupts if in IT mode */
+    /* Enable CAN interrupts if in IT mode */
     if (ctx->access == CAN_ACCESS_IT) {
+        /* Clear all pending interrupts before starting.
+         * /!\ rc_w1 bits : write 1 to clear ! */
+        set_reg_bits(r_CANx_MSR(ctx->id), CAN_MSR_SLAKI_Msk |
+                                          CAN_MSR_WKUI_Msk  |
+                                          CAN_MSR_ERRI_Msk);
         uint32_t ier_val = 0;
         ier_val = CAN_IER_ERRIE_Msk  |
                   CAN_IER_BOFIE_Msk  |
