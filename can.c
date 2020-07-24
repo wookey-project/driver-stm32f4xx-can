@@ -346,29 +346,28 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
         }
         ctx->can_dev.irqs[0].handler = can_IRQHandler;
         ctx->can_dev.irqs[0].mode = IRQ_ISR_STANDARD;
+        /* Get MSR in status and TSR in data */
         ctx->can_dev.irqs[0].posthook.status = CAN_MSR;
         ctx->can_dev.irqs[0].posthook.data   = CAN_TSR;
-
         ctx->can_dev.irqs[0].posthook.action[0].instr = IRQ_PH_READ;
         ctx->can_dev.irqs[0].posthook.action[0].read.offset = CAN_MSR;
-
         ctx->can_dev.irqs[0].posthook.action[1].instr = IRQ_PH_READ;
         ctx->can_dev.irqs[0].posthook.action[1].read.offset = CAN_TSR;
         /* clear TSR: RQCP0 */
         ctx->can_dev.irqs[0].posthook.action[2].instr = IRQ_PH_WRITE;
         ctx->can_dev.irqs[0].posthook.action[2].write.offset = CAN_TSR;
         ctx->can_dev.irqs[0].posthook.action[2].write.value  = 0;
-        ctx->can_dev.irqs[0].posthook.action[2].write.mask   = 0x1 << 0;
+        ctx->can_dev.irqs[0].posthook.action[2].write.mask   = CAN_TSR_RQCP0_Msk;
         /* clear TSR: RQCP1 */
         ctx->can_dev.irqs[0].posthook.action[3].instr = IRQ_PH_WRITE;
         ctx->can_dev.irqs[0].posthook.action[3].write.offset = CAN_TSR;
         ctx->can_dev.irqs[0].posthook.action[3].write.value  = 0;
-        ctx->can_dev.irqs[0].posthook.action[3].write.mask   = 0x1 << 8;
+        ctx->can_dev.irqs[0].posthook.action[3].write.mask   = CAN_TSR_RQCP2_Msk;
         /* clear TSR: RQCP2 */
         ctx->can_dev.irqs[0].posthook.action[4].instr = IRQ_PH_WRITE;
         ctx->can_dev.irqs[0].posthook.action[4].write.offset = CAN_TSR;
         ctx->can_dev.irqs[0].posthook.action[4].write.value  = 0;
-        ctx->can_dev.irqs[0].posthook.action[4].write.mask   = 0x1 << 16;
+        ctx->can_dev.irqs[0].posthook.action[4].write.mask   = CAN_TSR_RQCP2_Msk;
 
 
         /* RX0 interrupt is the consequence of RF0R register bits being
@@ -387,13 +386,13 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
         }
         ctx->can_dev.irqs[1].handler = can_IRQHandler;
         ctx->can_dev.irqs[1].mode = IRQ_ISR_STANDARD;
+        /* Get MSR in status and RF0R in data */
         ctx->can_dev.irqs[1].posthook.status = CAN_MSR;
         ctx->can_dev.irqs[1].posthook.data   = CAN_RF0R;
         ctx->can_dev.irqs[1].posthook.action[0].instr = IRQ_PH_READ;
         ctx->can_dev.irqs[1].posthook.action[0].read.offset = CAN_MSR;
         ctx->can_dev.irqs[1].posthook.action[1].instr = IRQ_PH_READ;
         ctx->can_dev.irqs[1].posthook.action[1].read.offset = CAN_RF0R;
-
         /* We need to mask in the kernel the sources of the RX0 interrupt
          * related to the mailboxes :
          *   - we clear IER:FMPIE0 and it will be set again by the
@@ -413,7 +412,6 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
         /* RX1 interrupt is the consequence of RF1R register bits being
          * set, see STRM00090, chap 32.8   (CAN Interrupts)    fig. 348
          *                     chap 32.9.5 (CAN registers map) table 184 */
-
         switch (ctx->id) {
            case CAN_PORT_1:
               ctx->can_dev.irqs[2].irq = CAN1_RX1_IRQ;
@@ -428,6 +426,7 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
         }
         ctx->can_dev.irqs[2].handler = can_IRQHandler;
         ctx->can_dev.irqs[2].mode = IRQ_ISR_STANDARD;
+        /* Get MSR in status and RF1R in data */
         ctx->can_dev.irqs[2].posthook.status = CAN_MSR;
         ctx->can_dev.irqs[2].posthook.data   = CAN_RF1R;
         ctx->can_dev.irqs[2].posthook.action[0].instr = IRQ_PH_READ;
@@ -441,10 +440,10 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
         ctx->can_dev.irqs[2].posthook.action[2].write.mask   =
              CAN_IER_FMPIE1_Msk | CAN_IER_FFIE1_Msk | CAN_IER_FOVIE1_Msk;
 
-
-        /* The Status Change SCE interrupt is the consequence of MSR
-         * register bits being set, in association with the ESR register
-         * filters.
+        /* The Status Change SCE interrupt is the consequence of :
+         * a. the MSR register bits being set,
+         * b. the ESR register bits being set,
+         * both in association with the IER register's authorizations.
          * see ST RM00090, chap 32.8 (CAN Interrupts) fig. 348 */
         switch (ctx->id) {
            case CAN_PORT_1:
@@ -460,31 +459,32 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
         }
         ctx->can_dev.irqs[3].handler = can_IRQHandler;
         ctx->can_dev.irqs[3].mode = IRQ_ISR_STANDARD;
+        /* Get MSR in status and ESR in data */
         ctx->can_dev.irqs[3].posthook.status = CAN_MSR;
         ctx->can_dev.irqs[3].posthook.data   = CAN_ESR;
         ctx->can_dev.irqs[3].posthook.action[0].instr = IRQ_PH_READ;
         ctx->can_dev.irqs[3].posthook.action[0].read.offset = CAN_MSR;
         ctx->can_dev.irqs[3].posthook.action[1].instr = IRQ_PH_READ;
         ctx->can_dev.irqs[3].posthook.action[1].read.offset = CAN_ESR;
-        /* clear MSR:SLAKI, WKUI & ERRI (previous values saved in status
-         * variable */
+        /* clear MSR:SLAKI, WKUI & ERRI (previous values saved in variables
+         * "status" and "data") */
         ctx->can_dev.irqs[3].posthook.action[2].instr = IRQ_PH_WRITE;
         ctx->can_dev.irqs[3].posthook.action[2].write.offset = CAN_MSR;
-        ctx->can_dev.irqs[3].posthook.action[2].write.value  = 0x00;
-        ctx->can_dev.irqs[3].posthook.action[2].write.mask   = //0x7 << 2;
+        ctx->can_dev.irqs[3].posthook.action[2].write.value  = 0;
+        ctx->can_dev.irqs[3].posthook.action[2].write.mask   =
            CAN_MSR_SLAKI_Msk | CAN_MSR_WKUI_Msk | CAN_MSR_ERRI_Msk;
-        /* Set ESR:LEC[0:2] to 0b111 to clear the error number */
-        ctx->can_dev.irqs[3].posthook.action[3].instr = IRQ_PH_WRITE;
-        ctx->can_dev.irqs[3].posthook.action[3].write.offset = CAN_ESR;
-        ctx->can_dev.irqs[3].posthook.action[3].write.value  = 0xFFFF;
-        ctx->can_dev.irqs[3].posthook.action[3].write.mask   = CAN_ESR_LEC_Msk;
         /* Inhibate error interrupt while the error is still there */
-        ctx->can_dev.irqs[3].posthook.action[4].instr = IRQ_PH_WRITE;
-        ctx->can_dev.irqs[3].posthook.action[4].write.offset = CAN_IER;
-        ctx->can_dev.irqs[3].posthook.action[4].write.value  = 0;
-        ctx->can_dev.irqs[3].posthook.action[4].write.mask   =
+        ctx->can_dev.irqs[3].posthook.action[3].instr = IRQ_PH_WRITE;
+        ctx->can_dev.irqs[3].posthook.action[3].write.offset = CAN_IER;
+        ctx->can_dev.irqs[3].posthook.action[3].write.value  = 0;
+        ctx->can_dev.irqs[3].posthook.action[3].write.mask   =
               CAN_IER_ERRIE_Msk | CAN_IER_LECIE_Msk
-            | CAN_IER_BOFIE_Msk | CAN_IER_EPVIE_Msk;
+            | CAN_IER_BOFIE_Msk | CAN_IER_EPVIE_Msk | CAN_IER_EWGIE_Msk;
+        /* Set ESR:LEC[0:2] to 0b111 to clear the error number */
+        ctx->can_dev.irqs[3].posthook.action[4].instr = IRQ_PH_WRITE;
+        ctx->can_dev.irqs[3].posthook.action[4].write.offset = CAN_ESR;
+        ctx->can_dev.irqs[3].posthook.action[4].write.value  = 0xFFFF;
+        ctx->can_dev.irqs[3].posthook.action[4].write.mask   = CAN_ESR_LEC_Msk;
 
     }
 
