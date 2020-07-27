@@ -294,12 +294,13 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
            strcpy(ctx->can_dev.name, "CAN1");
            ctx->can_dev.address = can1_dev_infos.address;
            ctx->can_dev.size    = can1_dev_infos.size;
-	         ctx->can_dev.gpio_num = 2;
-	         ctx->can_dev.gpios[0].kref.port = can1_dev_infos.gpios[CAN1_TX].port;
-	         ctx->can_dev.gpios[0].kref.pin  = can1_dev_infos.gpios[CAN1_TX].pin;
-
+           ctx->can_dev.gpio_num = 2;
+           ctx->can_dev.gpios[0].kref.port = can1_dev_infos.gpios[CAN1_TX].port;
+           ctx->can_dev.gpios[0].kref.pin  = can1_dev_infos.gpios[CAN1_TX].pin;
+           ctx->can_dev.gpios[0].afr   = GPIO_AF_CAN1;
            ctx->can_dev.gpios[1].kref.port = can1_dev_infos.gpios[CAN1_RX].port;
            ctx->can_dev.gpios[1].kref.pin  = can1_dev_infos.gpios[CAN1_RX].pin;
+           ctx->can_dev.gpios[1].afr   = GPIO_AF_CAN1;
            break;
 
         /* CAN 2 */
@@ -310,9 +311,10 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
            ctx->can_dev.gpio_num = 2;
            ctx->can_dev.gpios[0].kref.port = can2_dev_infos.gpios[CAN2_TX].port;
            ctx->can_dev.gpios[0].kref.pin  = can2_dev_infos.gpios[CAN2_TX].pin;
-
+           ctx->can_dev.gpios[0].afr   = GPIO_AF_CAN2;
            ctx->can_dev.gpios[1].kref.port = can2_dev_infos.gpios[CAN2_RX].port;
            ctx->can_dev.gpios[1].kref.pin  = can2_dev_infos.gpios[CAN2_RX].pin;
+           ctx->can_dev.gpios[1].afr   = GPIO_AF_CAN2;
            break;
 
         default:
@@ -327,7 +329,6 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
 	  ctx->can_dev.gpios[0].speed = GPIO_PIN_VERY_HIGH_SPEED;
 	  ctx->can_dev.gpios[0].type  = GPIO_PIN_OTYPER_PP;
 	  ctx->can_dev.gpios[0].pupd  = GPIO_NOPULL;
-	  ctx->can_dev.gpios[0].afr   = GPIO_AF_AF9; /* AF for CAN1 & CAN2 */
 
     ctx->can_dev.gpios[1].mask =
 		    GPIO_MASK_SET_MODE | GPIO_MASK_SET_TYPE | GPIO_MASK_SET_SPEED |
@@ -336,8 +337,9 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
     ctx->can_dev.gpios[1].type  = GPIO_PIN_OTYPER_PP;
     ctx->can_dev.gpios[1].pupd  = GPIO_NOPULL;
     ctx->can_dev.gpios[1].speed = GPIO_PIN_VERY_HIGH_SPEED;
-    ctx->can_dev.gpios[1].afr   = GPIO_AF_AF9; /* AF for CAN1 & CAN2 */
 
+
+   /* Interrupts */
     if (ctx->access == CAN_ACCESS_POLL) {
         ctx->can_dev.irq_num = 0; // Access by polling : no IRQs.
     } else {
@@ -490,7 +492,7 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
             | CAN_IER_BOFIE_Msk | CAN_IER_EPVIE_Msk | CAN_IER_EWGIE_Msk;
     }
 
-    /* ... and declare the CAN device */
+    /* ... and finaly declare the CAN device */
     sret = sys_init(INIT_DEVACCESS, &(ctx->can_dev), &(ctx->can_dev_handle));
     switch (sret) {
         case SYS_E_DENIED:
