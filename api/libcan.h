@@ -37,59 +37,67 @@
  * the callback address and help the compiler at optimization time.
  */
 
-/* CAN events */
+ /* CAN devices */
+  typedef enum {
+     CAN_PORT_1 = 1,
+     CAN_PORT_2 = 2,
+     CAN_PORT_3 = 3
+  } can_port_t;
+
+/* CAN events, signaled by the function can_event, called by the IRQ handler */
 typedef enum {
-    CAN_EVENT_RX_FIFO0_MSG_PENDING =  0,
-    CAN_EVENT_RX_FIFO0_FULL        =  1,
-    CAN_EVENT_RX_FIFO1_MSG_PENDING =  2,
-    CAN_EVENT_RX_FIFO1_FULL        =  3,
-    CAN_EVENT_TX_COMPLETE_MBOX0    =  4,
-    CAN_EVENT_TX_COMPLETE_MBOX1    =  5,
-    CAN_EVENT_TX_COMPLETE_MBOX2    =  6,
-    CAN_EVENT_TX_FAILED_MBOX0      =  7,
-    CAN_EVENT_TX_FAILED_MBOX1      =  8,
-    CAN_EVENT_TX_FAILED_MBOX2      =  9,
-    CAN_EVENT_SLEEP                = 10,
-    CAN_EVENT_RX_WAKEUP_MSG        = 11,
-    CAN_EVENT_ERROR                = 12
+    CAN_EVENT_SLEEP                     =  0,
+    CAN_EVENT_RX_WAKEUP_MSG             =  1,
+
+    CAN_EVENT_RX_FIFO0_MSG_PENDING      =  2,
+    CAN_EVENT_RX_FIFO0_FULL             =  3,
+    CAN_EVENT_RX_FIFO0_OVERRUN          =  4,
+
+    CAN_EVENT_RX_FIFO1_MSG_PENDING      =  5,
+    CAN_EVENT_RX_FIFO1_FULL             =  6,
+    CAN_EVENT_RX_FIFO1_OVERRUN          =  7,
+
+    CAN_EVENT_TX_MBOX0_COMPLETE         =  8,
+    CAN_EVENT_TX_MBOX0_ARBITRATION_LOST =  9,
+    CAN_EVENT_TX_MBOX0_TRANSMISSION_ERR = 10,
+
+    CAN_EVENT_TX_MBOX1_COMPLETE         = 11,
+    CAN_EVENT_TX_MBOX1_ARBITRATION_LOST = 12,
+    CAN_EVENT_TX_MBOX1_TRANSMISSION_ERR = 13,
+
+    CAN_EVENT_TX_MBOX2_COMPLETE         = 14,
+    CAN_EVENT_TX_MBOX2_ARBITRATION_LOST = 15,
+    CAN_EVENT_TX_MBOX2_TRANSMISSION_ERR = 16,
+
+    CAN_EVENT_ERROR_UNKOWN              = 17,
+    /* the following events transmit a CAN bus error state */
+    CAN_EVENT_ERROR                     = 18,
+    CAN_EVENT_ERROR_RX_WARNING          = 19, // RX Error Count >  96
+    CAN_EVENT_ERROR_TX_WARNING          = 20, // TX Error Count >  96
+    CAN_EVENT_ERROR_RX_PASSIVE_STATE    = 21, // RX Error Count > 127
+    CAN_EVENT_ERROR_TX_PASSIVE_STATE    = 22, // TX Error Count > 127
+    CAN_EVENT_ERROR_BUS_OFF_STATE       = 23, // TX Error Count > 255
 } can_event_t;
 
-typedef enum {
-   CAN_PORT_1 = 1,
-   CAN_PORT_2 = 2,
-   CAN_PORT_3 = 3
-} can_port_t;
+/* CAN Bus Error codes */
+enum can_code_t {
+  CAN_CODE_NO_ERROR = 0x0,
+  CAN_CODE_STUFF_ERROR,          // 6 consecutive equal bits in a frame.
+  CAN_CODE_FORM_ERROR,           // invalid bit field in a CAN frame.
+  CAN_CODE_ACKNOWLEDGMENT_ERROR, // no dominant bit during acknowledgment slot
+  CAN_CODE_BIT_RECESSIVE_ERROR,  // monitored a dominant bit while sending
+  CAN_CODE_BIT_DOMINANT_ERROR,   // monitored a recessive bit while sending
+  CAN_CODE_CRC_ERROR,            // Cyclic Redundancy Check failed.
+  CAN_CODE_SET_BY_SOFTWARE       // can't be set by hardware.
+};
 
-/*
- * Error codes bit fields
- */
-typedef uint32_t can_error_t;
-#define CAN_ERROR_NONE                       0x0
+typedef struct __attribute__((packed)) {
+   uint8_t  last_code;
+   uint8_t  rx_count;
+   uint16_t tx_count;
+} can_error_t;
 
-#define CAN_ERROR_TX_ARBITRATION_LOST_MBOX0 (0x1 <<  0)
-#define CAN_ERROR_TX_TRANSMISSION_ERR_MBOX0 (0x1 <<  1)
-#define CAN_ERROR_TX_ARBITRATION_LOST_MBOX1 (0x1 <<  2)
-#define CAN_ERROR_TX_TRANSMISSION_ERR_MBOX1 (0x1 <<  3)
-
-#define CAN_ERROR_TX_ARBITRATION_LOST_MBOX2 (0x1 <<  4)
-#define CAN_ERROR_TX_TRANSMISSION_ERR_MBOX2 (0x1 <<  5)
-#define CAN_ERROR_RX_FIFO0_OVERRRUN         (0x1 <<  6)
-#define CAN_ERROR_RX_FIFO0_FULL             (0x1 <<  7)
-
-#define CAN_ERROR_RX_FIFO1_OVERRRUN         (0x1 <<  8)
-#define CAN_ERROR_RX_FIFO1_FULL             (0x1 <<  9)
-#define CAN_ERROR_FLAG_WARNING_LIMIT        (0x1 << 10) //Counter >  96
-#define CAN_ERROR_FLAG_PASSIVE_LIMIT        (0x1 << 11) //Counter > 127
-
-#define CAN_ERROR_FLAG_BUS_OFF_STATUS       (0x1 << 12) //Counter > 255
-#define CAN_ERROR_LEC_STUFF                 (0x1 << 13) //Bit stuffing (6th bit)
-#define CAN_ERROR_LEC_FORM                  (0x1 << 14) //Frame check (invalid)
-#define CAN_ERROR_LEC_ACKNOWLEDGMENT        (0x1 << 15) //Dominant level in slot?
-
-#define CAN_ERROR_LEC_RECESSIVE_BIT         (0x1 << 16) //Bit monitoring
-#define CAN_ERROR_LEC_DOMINANT_BIT          (0x1 << 17) //Bit monitoring
-#define CAN_ERROR_LEC_CRC                   (0x1 << 18) //Cyclic Redundancy Check
-#define CAN_ERROR_LEC_SET_BY_SOFTWARE       (0x1 << 19)
+const can_error_t no_error = {CAN_CODE_NO_ERROR, 0, 0};
 
 void can_event(__in can_event_t event,
                __in can_port_t  port,
@@ -98,25 +106,26 @@ void can_event(__in can_event_t event,
 
 /******************************************************************************/
 
-/* can transmit mbox id */
+/* transmit mailboxes */
 typedef enum {
     CAN_MBOX_0 = 0,
     CAN_MBOX_1,
     CAN_MBOX_2
 } can_mbox_t;
 
-/* can receive FIFO id */
+/* receive FIFO */
 typedef enum {
     CAN_FIFO_0 = 0,
     CAN_FIFO_1
 } can_fifo_t;
 
-/* can receive policy : polling or interrupts */
+/* receive policy : polling or interrupts */
 typedef enum {
     CAN_ACCESS_POLL,
     CAN_ACCESS_IT
 } can_access_t;
 
+/* test modes */
 typedef enum {
     CAN_MODE_NORMAL,
     CAN_MODE_SILENT,
@@ -124,33 +133,34 @@ typedef enum {
     CAN_MODE_SELFTEST /* Silent + loopback, see RM00090 chap 32.5.3 */
 } can_mode_t;
 
+/* device state */
 typedef enum {
     CAN_STATE_SLEEP,
     CAN_STATE_INIT,
     CAN_STATE_READY,
     CAN_STATE_STARTED,
-    CAN_STATE_STOPPED,
     CAN_STATE_RESET
 } can_state_t;
 
+/* Arbitration field for CAN indentifier */
 typedef enum {
-    CAN_ID_STD = 0,
-    CAN_ID_EXT = 1
+    CAN_ID_STD = 0, // Standard format (11 bits)
+    CAN_ID_EXT = 1  // Extended format (29 bits)
 } can_id_kind_t;
 
-
+/* bit rates */
 typedef enum {
+  /* bit rates common to any targets */
   CAN_SPEED_1MBit_s,   //   30 m
-/* bit rates common to any targets */
+  /* bit rates specific to vehicles */
 #if CONFIG_CAN_TARGET_VEHICLES
-/* bit rates specific to vehicles */
   CAN_SPEED_500kBit_s, //  100 m
   CAN_SPEED_250kBit_s, //  250 m
   CAN_SPEED_125kBit_s, //  500 m
   CAN_SPEED_100kBit_s
 #endif
+  /* bit rates specific to industrial automaton */
 #if CONFIG_CAN_TARGET_AUTOMATONS
-/* bit rates specific to industrial automaton */
   CAN_SPEED_384kBit_s
 #endif
 } can_bit_rate_t;
