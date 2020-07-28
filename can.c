@@ -84,16 +84,16 @@ static void can_IRQHandler(uint8_t irq,
             /* Transmit (or abort) performed on Mbox0, cleared by PH */
             if ((tsr & CAN_TSR_TXOK0_Msk) != 0) {
                 /* Transfer complete */
-                can_event(CAN_EVENT_TX_MBOX0_COMPLETE, id, no_error);
+                can_event(CAN_EVENT_TX_MBOX0_COMPLETE, id, CAN_NO_ERROR);
             } else {
                 /* Transfer aborted, get error */
                 if ((tsr & CAN_TSR_ALST0_Msk) != 0) {
-                   can_event(CAN_EVENT_TX_MBOX0_ARBITRATION_LOST, id, no_error);
+                   can_event(CAN_EVENT_TX_MBOX0_ARBITRATION_LOST, id, CAN_NO_ERROR);
                 }
                 if ((tsr & CAN_TSR_TERR0_Msk) != 0) {
-                   can_event(CAN_EVENT_TX_MBOX0_TRANSMISSION_ERR, id, no_error);
+                   can_event(CAN_EVENT_TX_MBOX0_TRANSMISSION_ERR, id, CAN_NO_ERROR);
                   }
-                can_event(CAN_EVENT_ERROR_UNKOWN, id, no_error);
+                can_event(CAN_EVENT_ERROR_UNKOWN, id, CAN_NO_ERROR);
             }
         }
         /* Tx Mbox 1 */
@@ -101,16 +101,16 @@ static void can_IRQHandler(uint8_t irq,
             /* Transmit (or abort) performed on Mbox1, cleared by PH */
             if ((tsr & CAN_TSR_TXOK1_Msk) != 0) {
                /* Transfer complete */
-               can_event(CAN_EVENT_TX_MBOX1_COMPLETE, id, no_error);
+               can_event(CAN_EVENT_TX_MBOX1_COMPLETE, id, CAN_NO_ERROR);
             } else {
                 /* Transfer aborted, get error */
                 if ((tsr & CAN_TSR_ALST1_Msk) != 0) {
-                   can_event(CAN_EVENT_TX_MBOX1_ARBITRATION_LOST, id, no_error);
+                   can_event(CAN_EVENT_TX_MBOX1_ARBITRATION_LOST, id, CAN_NO_ERROR);
                 }
                 if ((tsr & CAN_TSR_TERR1_Msk) != 0) {
-                   can_event(CAN_EVENT_TX_MBOX1_TRANSMISSION_ERR, id, no_error);
+                   can_event(CAN_EVENT_TX_MBOX1_TRANSMISSION_ERR, id, CAN_NO_ERROR);
                 }
-                can_event(CAN_EVENT_ERROR_UNKOWN, id, no_error);
+                can_event(CAN_EVENT_ERROR_UNKOWN, id, CAN_NO_ERROR);
             }
         }
         /* Tx Mbox 2 */
@@ -118,16 +118,16 @@ static void can_IRQHandler(uint8_t irq,
             /* Transmit (or abort) performed on Mbox2, cleared by PH */
             if ((tsr & CAN_TSR_TXOK2_Msk) != 0) {
                /* Transfer complete */
-               can_event(CAN_EVENT_TX_MBOX2_COMPLETE, id, no_error);
+               can_event(CAN_EVENT_TX_MBOX2_COMPLETE, id, CAN_NO_ERROR);
             } else {
                 /* Transfer aborted, get error */
                 if ((tsr & CAN_TSR_ALST2_Msk) != 0) {
-                   can_event(CAN_EVENT_TX_MBOX2_ARBITRATION_LOST, id, no_error);
+                   can_event(CAN_EVENT_TX_MBOX2_ARBITRATION_LOST, id, CAN_NO_ERROR);
                 }
                 if ((tsr & CAN_TSR_TERR2_Msk) != 0) {
-                   can_event(CAN_EVENT_TX_MBOX2_TRANSMISSION_ERR, id, no_error);
+                   can_event(CAN_EVENT_TX_MBOX2_TRANSMISSION_ERR, id, CAN_NO_ERROR);
                 }
-                can_event(CAN_EVENT_ERROR_UNKOWN, id, no_error);
+                can_event(CAN_EVENT_ERROR_UNKOWN, id, CAN_NO_ERROR);
             }
         }
         break; /* Transmit case */
@@ -137,17 +137,17 @@ static void can_IRQHandler(uint8_t irq,
       case CAN2_RX0_IRQ:
         /* Rx FIFO0 overrun */
         if ((rfr & CAN_RFxR_FOVRx_Msk) != 0) {
-          can_event(CAN_EVENT_RX_FIFO0_OVERRUN, id, no_error);
+          can_event(CAN_EVENT_RX_FIFO0_OVERRUN, id, CAN_NO_ERROR);
         } else
         /* Rx FIFO0 full */
         if ((rfr & CAN_RFxR_FULLx_Msk) != 0) {
-          can_event(CAN_EVENT_RX_FIFO0_FULL, id, no_error);
+          can_event(CAN_EVENT_RX_FIFO0_FULL, id, CAN_NO_ERROR);
           /* if FIFO0 is full we still allow IRQ to detect overrun */
           set_reg_bits(r_CANx_IER(id), CAN_IER_FOVIE0_Msk);
         } else
         /* Rx FIFO0 msg pending */
         if ((rfr & CAN_RFxR_FMPx_Msk) != 0) {
-          can_event(CAN_EVENT_RX_FIFO0_MSG_PENDING, id, no_error);
+          can_event(CAN_EVENT_RX_FIFO0_MSG_PENDING, id, CAN_NO_ERROR);
           /* if the FIFO0 is not full, we reallow Full and overrun */
           set_reg_bits(r_CANx_IER(id), CAN_IER_FFIE0_Msk | CAN_IER_FOVIE0_Msk);
         }
@@ -157,17 +157,17 @@ static void can_IRQHandler(uint8_t irq,
       case CAN2_RX1_IRQ:
         /* Rx FIFO1 overrun */
         if ((rfr & CAN_RFxR_FOVRx_Msk) != 0) {
-          can_event(CAN_EVENT_RX_FIFO1_OVERRUN, id, no_error);
+          can_event(CAN_EVENT_RX_FIFO1_OVERRUN, id, CAN_NO_ERROR);
         } else
         /* Rx FIFO1 full */
         if ((rfr & CAN_RFxR_FULLx_Msk) != 0) {
-          can_event(CAN_EVENT_RX_FIFO1_FULL, id, no_error);
+          can_event(CAN_EVENT_RX_FIFO1_FULL, id, CAN_NO_ERROR);
           /* if FIFO1 is full we still allow IRQ to detect overrun */
           set_reg_bits(r_CANx_IER(id), CAN_IER_FOVIE1_Msk);
         } else
         /* Rx FIFO1 msg pending */
         if ((rfr & CAN_RFxR_FMPx_Msk) != 0) {
-          can_event(CAN_EVENT_RX_FIFO1_MSG_PENDING, id, no_error);
+          can_event(CAN_EVENT_RX_FIFO1_MSG_PENDING, id, CAN_NO_ERROR);
           /* if the FIFO1 is not full, we reallow Full and overrun */
           set_reg_bits(r_CANx_IER(id), CAN_IER_FFIE1_Msk | CAN_IER_FOVIE1_Msk);
         }
@@ -180,13 +180,13 @@ static void can_IRQHandler(uint8_t irq,
         /* Wakeup conditions */
         if ((msr & CAN_MSR_WKUI_Msk) != 0) {
             /* MSR:WKUI already acknowledge by PH */
-            can_event(CAN_EVENT_RX_WAKEUP_MSG, id, no_error);
+            can_event(CAN_EVENT_RX_WAKEUP_MSG, id, CAN_NO_ERROR);
         } else
 
         /* Entry into sleep mode */
         if ((msr & CAN_MSR_SLAKI_Msk) != 0) {
             /* MSR:SLAKI already acknowledged by PH */
-            can_event(CAN_EVENT_SLEEP, id, no_error);
+            can_event(CAN_EVENT_SLEEP, id, CAN_NO_ERROR);
         }
 
         /* Error condition */
@@ -235,7 +235,7 @@ static void can_IRQHandler(uint8_t irq,
             set_reg_bits(r_CANx_IER(id), CAN_IER_ERRIE_Msk);
         } /* End if Errors */
         else {
-          can_event(CAN_EVENT_ERROR_UNKOWN, id, no_error);
+          can_event(CAN_EVENT_ERROR_UNKOWN, id, CAN_NO_ERROR);
         }
     } /* End switch (interrupt) */
 err:
