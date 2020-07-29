@@ -203,31 +203,31 @@ static void can_IRQHandler(uint8_t irq,
             /* Error flags */
             if ((esr & CAN_ESR_BOFF_Msk) != 0) {
               /* CAN Bus is Off ... */
+              clear_reg_bits(r_CANx_IER(id), CAN_IER_BOFIE_Msk);
               error.tx_count = error.tx_count + 256;
               can_event(CAN_EVENT_ERROR_BUS_OFF_STATE, id, error);
-              /* We do not disallow Bus Off detection... should we ?
-               * In the hope of Automatic Bus Off recovery. */
             } else {
               if (((esr & CAN_ESR_EPVF_Msk) != 0) &&
                   ((ier & CAN_IER_EPVIE_Msk)!= 0)) {
-                /* Device entered passive error state... */
+                /* Device entered passive error state...
+                 * we disallow passive state detection */
+                clear_reg_bits(r_CANx_IER(id), CAN_IER_EPVIE_Msk);
                 if (error.rx_count > error.tx_count) {
                   can_event(CAN_EVENT_ERROR_RX_PASSIVE_STATE, id, error);
                 } else {
                   can_event(CAN_EVENT_ERROR_TX_PASSIVE_STATE, id, error);
                 }
-                /* we disallow passive state detection */
-                clear_reg_bits(r_CANx_IER(id), CAN_IER_EPVIE_Msk);
+
               } else {
                 if (((esr & CAN_ESR_EWGF_Msk) != 0) &&
                     ((ier & CAN_IER_EWGIE_Msk)!= 0)) {
+                  /* we disallow Error Warning signal */
+                  clear_reg_bits(r_CANx_IER(id), CAN_IER_EWGIE_Msk);
                   if (error.rx_count > error.tx_count) {
                     can_event(CAN_EVENT_ERROR_RX_WARNING, id, error);
                   } else {
                     can_event(CAN_EVENT_ERROR_TX_WARNING, id, error);
                   }
-                  /* we disallow Error Warning signal */
-                  clear_reg_bits(r_CANx_IER(id), CAN_IER_EWGIE_Msk);
                 } else {
                    /* a simple error is signaled */
                    can_event(CAN_EVENT_ERROR, id, error);
