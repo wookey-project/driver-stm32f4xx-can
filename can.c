@@ -26,6 +26,7 @@ static void can_IRQHandler(uint8_t irq,
 {
     uint32_t msr = 0;                     /* status */
     uint32_t esr = 0, tsr = 0, rfr = 0;   /* data : error, tx, rx */
+    uint32_t ier = 0;                     /* IER register */
 
     can_port_t id;
 
@@ -50,6 +51,7 @@ static void can_IRQHandler(uint8_t irq,
             break;
         case CAN1_SCE_IRQ:
             esr = data;
+            ier = (uint32_t)*REG_ADDR(CAN1_BASE + CAN_IER);
             id  = 1;
             break;
         case CAN2_TX_IRQ:
@@ -66,6 +68,7 @@ static void can_IRQHandler(uint8_t irq,
             break;
         case CAN2_SCE_IRQ:
             esr = data;
+            ier = (uint32_t)*REG_ADDR(CAN2_BASE + CAN_IER);
             id  = 2;
             break;
         default:
@@ -177,13 +180,13 @@ static void can_IRQHandler(uint8_t irq,
               /********** handling status change case **************/
       case CAN1_SCE_IRQ:
       case CAN2_SCE_IRQ:
-        /* Wakeup conditions */
+        /* Wakeup condition, SOF monitored on RX */
         if ((msr & CAN_MSR_WKUI_Msk) != 0) {
             /* MSR:WKUI already acknowledge by PH */
             can_event(CAN_EVENT_RX_WAKEUP_MSG, id, CAN_NO_ERROR);
         } else
 
-        /* Entry into sleep mode */
+        /* Entry into Sleep mode */
         if ((msr & CAN_MSR_SLAKI_Msk) != 0) {
             /* MSR:SLAKI already acknowledged by PH */
             can_event(CAN_EVENT_SLEEP, id, CAN_NO_ERROR);
@@ -199,42 +202,43 @@ static void can_IRQHandler(uint8_t irq,
 
             /* Error flags */
             if ((esr & CAN_ESR_BOFF_Msk) != 0) {
+              /* CAN Bus is Off ... */
               error.tx_count = error.tx_count + 256;
               can_event(CAN_EVENT_ERROR_BUS_OFF_STATE, id, error);
-              /* We do not reallow Bus Off detection...
-               * should we ? to permit Automatic Bus Off recovery ? */
+              /* We do not disallow Bus Off detection... should we ?
+               * In the hope of Automatic Bus Off recovery. */
             } else {
-              if ((esr & CAN_ESR_EPVF_Msk) != 0) {
+              if (((esr & CAN_ESR_EPVF_Msk) != 0) &&
+                  ((ier & CAN_IER_EPVIE_Msk)!= 0)) {
+                /* Device entered passive error state... */
                 if (error.rx_count > error.tx_count) {
                   can_event(CAN_EVENT_ERROR_RX_PASSIVE_STATE, id, error);
                 } else {
                   can_event(CAN_EVENT_ERROR_TX_PASSIVE_STATE, id, error);
                 }
-                /* we reallow Bus Off detection */
-                set_reg_bits(r_CANx_IER(id), CAN_IER_BOFIE_Msk);
+                /* we disallow passive state detection */
+                clear_reg_bits(r_CANx_IER(id), CAN_IER_EPVIE_Msk);
               } else {
-                if ((esr & CAN_ESR_EWGF_Msk) != 0) {
+                if (((esr & CAN_ESR_EWGF_Msk) != 0) &&
+                    ((ier & CAN_IER_EWGIE_Msk)!= 0)) {
                   if (error.rx_count > error.tx_count) {
                     can_event(CAN_EVENT_ERROR_RX_WARNING, id, error);
                   } else {
                     can_event(CAN_EVENT_ERROR_TX_WARNING, id, error);
                   }
-                  /* we reallow both Passive Limit and Bus Off detection */
-                  set_reg_bits(r_CANx_IER(id), CAN_IER_EPVIE_Msk |
-                                               CAN_IER_BOFIE_Msk);
+                  /* we disallow Error Warning signal */
+                  clear_reg_bits(r_CANx_IER(id), CAN_IER_EWGIE_Msk);
                 } else {
+                   /* a simple error is signaled */
                    can_event(CAN_EVENT_ERROR, id, error);
-                   /* we reallow all flags */
-                   set_reg_bits(r_CANx_IER(id), CAN_IER_EPVIE_Msk |
-                                                CAN_IER_BOFIE_Msk |
-                                                CAN_IER_EWGIE_Msk);
                 }
               }
             }
-            /* We reallow new errors from ESR */
+            /* We reallow new error interrupts from ESR */
             set_reg_bits(r_CANx_IER(id), CAN_IER_ERRIE_Msk);
         } /* End if Errors */
         else {
+          /* This case is erroneous */
           can_event(CAN_EVENT_ERROR_UNKOWN, id, CAN_NO_ERROR);
         }
     } /* End switch (interrupt) */
@@ -467,13 +471,12 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
         ctx->can_dev.irqs[3].posthook.action[2].write.value  = 0xFFFFFFFF;
         ctx->can_dev.irqs[3].posthook.action[2].write.mask   =
            CAN_MSR_SLAKI_Msk | CAN_MSR_WKUI_Msk | CAN_MSR_ERRI_Msk;
-        /* We mask in the kernel the sources of the SCE interrupt */
+        /* We mask in the kernel the SCE interrupt, but preserve IER state */
         ctx->can_dev.irqs[3].posthook.action[3].instr = IRQ_PH_WRITE;
         ctx->can_dev.irqs[3].posthook.action[3].write.offset = CAN_IER;
         ctx->can_dev.irqs[3].posthook.action[3].write.value  = 0;
         ctx->can_dev.irqs[3].posthook.action[3].write.mask   =
-              CAN_IER_ERRIE_Msk
-            | CAN_IER_BOFIE_Msk | CAN_IER_EPVIE_Msk | CAN_IER_EWGIE_Msk;
+           CAN_IER_ERRIE_Msk;
     }
 
     /* ... and finaly declare the CAN device */

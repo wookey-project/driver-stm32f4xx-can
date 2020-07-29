@@ -81,14 +81,14 @@ typedef enum {
 
 /* CAN Bus Error codes */
 enum can_code_t {
-  CAN_CODE_NO_ERROR = 0x0,
-  CAN_CODE_STUFF_ERROR,          // 6 consecutive equal bits in a frame.
-  CAN_CODE_FORM_ERROR,           // invalid bit field in a CAN frame.
-  CAN_CODE_ACKNOWLEDGMENT_ERROR, // no dominant bit during acknowledgment slot
-  CAN_CODE_BIT_RECESSIVE_ERROR,  // monitored a dominant bit while sending
-  CAN_CODE_BIT_DOMINANT_ERROR,   // monitored a recessive bit while sending
-  CAN_CODE_CRC_ERROR,            // Cyclic Redundancy Check failed.
-  CAN_CODE_SET_BY_SOFTWARE       // can't be set by hardware.
+  CAN_CODE_NO_ERROR             =0,
+  CAN_CODE_STUFF_ERROR          =1,// 6 consecutive equal bits in a frame.
+  CAN_CODE_FORM_ERROR           =2,// invalid bit field in a CAN frame.
+  CAN_CODE_ACKNOWLEDGMENT_ERROR =3,// no dominant bit during acknowledgment slot
+  CAN_CODE_BIT_RECESSIVE_ERROR  =4,// monitored a dominant bit while sending r
+  CAN_CODE_BIT_DOMINANT_ERROR   =5,// monitored a recessive bit while sending D
+  CAN_CODE_CRC_ERROR            =6,// Cyclic Redundancy Check failed.
+  CAN_CODE_SET_BY_SOFTWARE      =7 // can't be set by hardware.
 };
 
 typedef struct __attribute__((packed)) {
