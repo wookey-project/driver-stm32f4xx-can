@@ -163,9 +163,9 @@
 #define CAN_ESR_LEC_Pos 4U
 #define CAN_ESR_LEC_Msk ((uint32_t)7 << CAN_ESR_LEC_Pos)
 #define CAN_ESR_TEC_Pos 16U
-#define CAN_ESR_TEC_Msk ((uint32_t)0xffff << CAN_ESR_TEC_Pos)
+#define CAN_ESR_TEC_Msk ((uint32_t)0xff << CAN_ESR_TEC_Pos)
 #define CAN_ESR_REC_Pos 24U
-#define CAN_ESR_REC_Msk ((uint32_t)0xffff << CAN_ESR_REC_Pos)
+#define CAN_ESR_REC_Msk ((uint32_t)0xff << CAN_ESR_REC_Pos)
 
 /* BTR Bit Timing Register */
 #define CAN_BTR 0x01C

@@ -196,9 +196,9 @@ static void can_IRQHandler(uint8_t irq,
         if ((msr & CAN_MSR_ERRI_Msk) != 0) {
             /* MSR:ERRI already acknowledged by PH */
             can_error_t error;
-            error.last_code =(uint8_t)((esr & CAN_ESR_LEC_Msk)>>CAN_ESR_LEC_Pos);
+            error.last_code =(uint8_t) ((esr & CAN_ESR_LEC_Msk)>>CAN_ESR_LEC_Pos);
             error.tx_count  =(uint16_t)((esr & CAN_ESR_TEC_Msk)>>CAN_ESR_TEC_Pos);
-            error.rx_count  =(uint8_t)((esr & CAN_ESR_REC_Msk)>>CAN_ESR_REC_Pos);
+            error.rx_count  =(uint8_t) ((esr & CAN_ESR_REC_Msk)>>CAN_ESR_REC_Pos);
 
             /* Error flags */
             if (((esr & CAN_ESR_BOFF_Msk) != 0) &&
