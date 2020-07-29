@@ -201,8 +201,9 @@ static void can_IRQHandler(uint8_t irq,
             error.rx_count  =(uint8_t)((esr & CAN_ESR_REC_Msk)>>CAN_ESR_REC_Pos);
 
             /* Error flags */
-            if ((esr & CAN_ESR_BOFF_Msk) != 0) {
-              /* CAN Bus is Off ... */
+            if (((esr & CAN_ESR_BOFF_Msk) != 0) &&
+                ((ier & CAN_IER_BOFIE_Msk)!= 0)) {
+              /* CAN Bus entered Bus Off status... */
               clear_reg_bits(r_CANx_IER(id), CAN_IER_BOFIE_Msk);
               error.tx_count = error.tx_count + 256;
               can_event(CAN_EVENT_ERROR_BUS_OFF_STATE, id, error);
@@ -234,9 +235,16 @@ static void can_IRQHandler(uint8_t irq,
                 }
               }
             }
-            /* We reallow new error interrupts from ESR */
-            set_reg_bits(r_CANx_IER(id), CAN_IER_ERRIE_Msk);
-        } /* End if Errors */
+            /* To finish, we reallow new error interrupts from ESR */
+            uint32_t flag = CAN_IER_ERRIE_Msk;
+            /* Is it getting better on the CAN Bus ? */
+            uint16_t max = error.tx_count;
+            if (max < error.rx_count) max = error.rx_count;
+            if (max < 255) flag |= CAN_IER_BOFIE_Msk;
+            if (max < 127) flag |= CAN_IER_EPVIE_Msk;
+            if (max <  95) flag |= CAN_IER_EWGIE_Msk;
+            set_reg_bits(r_CANx_IER(id), flag);
+        } /* End of Error Condition */
         else {
           /* This case is erroneous */
           can_event(CAN_EVENT_ERROR_UNKOWN, id, CAN_NO_ERROR);
