@@ -99,9 +99,9 @@ typedef struct __attribute__((packed)) {
 
 #define CAN_NO_ERROR (can_error_t){CAN_CODE_NO_ERROR, 0, 0}
 
-void can_event(__in can_event_t event,
-               __in can_port_t  port,
-               __in can_error_t errcode);
+extern void can_event(__in can_event_t event,
+                      __in can_port_t  port,
+                      __in can_error_t errcode);
 
 
 /******************************************************************************/
