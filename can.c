@@ -39,38 +39,40 @@ static void can_IRQHandler(uint8_t irq,
     switch (interrupt) {
         case CAN1_TX_IRQ:
             tsr = data;
-            id  = 1;
+            id  = CAN_PORT_1;
             break;
         case CAN1_RX0_IRQ:
             rfr = data;
-            id  = 1;
+            id  = CAN_PORT_1;
             break;
         case CAN1_RX1_IRQ:
             rfr = data;
-            id  = 1;
+            id  = CAN_PORT_1;
             break;
         case CAN1_SCE_IRQ:
             esr = data;
             ier = (uint32_t)*REG_ADDR(CAN1_BASE + CAN_IER);
-            id  = 1;
+            id  = CAN_PORT_1;
             break;
+
         case CAN2_TX_IRQ:
             tsr = data;
-            id  = 2;
+            id  = CAN_PORT_2;
             break;
         case CAN2_RX0_IRQ:
             rfr = data;
-            id  = 2;
+            id  = CAN_PORT_2;
             break;
         case CAN2_RX1_IRQ:
             rfr = data;
-            id  = 2;
+            id  = CAN_PORT_2;
             break;
         case CAN2_SCE_IRQ:
             esr = data;
             ier = (uint32_t)*REG_ADDR(CAN2_BASE + CAN_IER);
-            id  = 2;
+            id  = CAN_PORT_2;
             break;
+
         default:
             goto err;
             break;
