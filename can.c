@@ -607,7 +607,7 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
             set_reg(r_CANx_BTR(ctx->id), 0x0, CAN_BTR_SILM);
             set_reg(r_CANx_BTR(ctx->id), 0x1, CAN_BTR_LBKM);
             break;
-        case CAN_MODE_SELFTEST:
+        case CAN_MODE_SILENT_LOOPBACK:
             set_reg(r_CANx_BTR(ctx->id), 0x1, CAN_BTR_SILM);
             set_reg(r_CANx_BTR(ctx->id), 0x1, CAN_BTR_LBKM);
             break;

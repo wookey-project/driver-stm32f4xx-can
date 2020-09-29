@@ -130,7 +130,7 @@ typedef enum {
     CAN_MODE_NORMAL,
     CAN_MODE_SILENT,
     CAN_MODE_LOOPBACK,
-    CAN_MODE_SELFTEST /* Silent + loopback, see RM00090 chap 32.5.3 */
+    CAN_MODE_SILENT_LOOPBACK  /* Silent + loopback, see RM00090 chap 32.5.3 */
 } can_mode_t;
 
 /* device state */
