@@ -4,8 +4,8 @@ The CAN driver API
 .. highlight:: c
 
 
-initialization of the CAN driver
-""""""""""""""""""""""""""""""""
+Initialization
+""""""""""""""
 
 It is done with the following API::
 
