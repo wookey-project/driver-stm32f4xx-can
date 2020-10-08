@@ -1,4 +1,4 @@
-About The CAN driver API
+AAbout The CAN driver API
 ------------------------
 
 .. highlight:: c
@@ -34,28 +34,48 @@ At device's initialization time, other fields are required:
        * LOOPBACK: all messages sent are also received
        * SILENT LOOPBACK
    * CAN access mode, which can be poll mode (no interrupt) or interrupt based
+   * CAN bus bit rate, (only 250 and 500 k bit/s have been tested)
    * Time trigger activation, which marks CAN messages headers with local timestamping
    * auto bus off management: automatic recovery from bus off state
    * auto wakeup: allows wake up from sleep mode on CAN messages' reception
    * auto message retransmission: which automatically resent messages that were not correctly transmitted the first time
 
-Here is an example:
+Here is an example::
 
-mbed_error_t mret;
+   mbed_error_t mret;
 
-memset(&can1_ctx, 0, sizeof(can_context_t));
-can1_ctx.port = CAN_PORT_1;
-can1_ctx.mode = CAN_MODE_NORMAL;
-can1_ctx.access = CAN_ACCESS_IT;
-can1_ctx.timetrigger  = false;    /* Time triggered communication mode  */
-can1_ctx.autobusoff   = true;     /* automatically recover from Bus-Off */
-can1_ctx.autowakeup   = false;    /* no wake up from sleep on reception */
-can1_ctx.autoretrans  = false;    /* no auto retransmission */
-can1_ctx.rxfifolocked = false;    /* no Rx Fifo locking against overrun */
-can1_ctx.txfifoprio   = true;     /* Tx FIFO respects chronology */
-can1_ctx.bit_rate     = CAN_SPEED_250kBit_s;
+   memset(&can1_ctx, 0, sizeof(can_context_t));
+   can1_ctx.port         = CAN_PORT_1;
+   can1_ctx.mode         = CAN_MODE_NORMAL;
+   can1_ctx.access       = CAN_ACCESS_IT;
+   can1_ctx.bit_rate     = CAN_SPEED_250kBit_s;
+   can1_ctx.timetrigger  = false;    /* Time triggered communication mode  */
+   can1_ctx.autobusoff   = true;     /* automatically recover from Bus-Off */
+   can1_ctx.autowakeup   = false;    /* no wake up from sleep on reception */
+   can1_ctx.autoretrans  = false;    /* no auto retransmission */
+   can1_ctx.rxfifolocked = false;    /* no Rx Fifo locking against overrun */
+   can1_ctx.txfifoprio   = true;     /* Tx FIFO respects chronology */
 
-mret = can_declare(&can1_ctx);
+   mret = can_declare(&can1_ctx);
+
+
+Interrupt request management
+""""""""""""""""""""""""""""
+
+The CAN driver handles the difficult part of IRQ management such as clearing
+interrupts requests bits in hardware registers, with the help of the Ewok
+microkernel, and extracting the relevent information. Each time the CAN device
+raises a hardware interrupt, the internal handler of the CAN driver is called,
+and it will do the low-level part and identify what event happened. Once this is
+done, the driver's handler calls the following, user provided, procedure::
+
+   void can_event(can_event_t event, can_port_t port, can_error_t errcode)
+
+Hence, if the CAN device access mode has been configured to "CAN_ACCESS_IT" the
+user must treat all RX and TX events in this procedure, knowing that, because
+it is executed as an IRQ,treatments must be fast and short, and never stop.
+
+Events also signal errors in the device or on the CAN bus.
 
 
 Starting and stopping the CAN device
@@ -94,3 +114,5 @@ Sending and receiving CAN messages is done using the following API::
                              const __in  can_fifo_t     fifo,
                                    __out can_header_t  *header,
                                    __out can_data_t    *data);
+
+*can_receive* can be called in the interrupt context of *can_event*.
