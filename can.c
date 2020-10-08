@@ -274,7 +274,7 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
         goto end;
     }
     /* both master CAN 1 and slave CAN 2 are supported. */
-    if ((ctx->id != CAN_PORT_1) && (ctx->id != CAN_PORT_2)) {
+    if ((ctx->port != CAN_PORT_1) && (ctx->port != CAN_PORT_2)) {
         errcode = MBED_ERROR_INVPARAM;
         goto end;
     }
@@ -285,7 +285,7 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
     ctx->state = CAN_STATE_SLEEP; /* default at reset */
 
     /* let's describe a CAN device to the kernel... */
-    switch (ctx->id) {
+    switch (ctx->port) {
 
         /* CAN 1 */
         case CAN_PORT_1:
@@ -348,7 +348,7 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
          * in register TSR.
          * see ST RM00090, chap 32.8   (CAN Interrupts)    fig.  348
          *                 chap 32.9.5 (CAN registers map) table 184 */
-        switch (ctx->id) {
+        switch (ctx->port) {
            case CAN_PORT_1:
                ctx->can_dev.irqs[0].irq = CAN1_TX_IRQ;
                break;
@@ -379,7 +379,7 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
         /* RX0 interrupt is the consequence of RF0R register bits being
          * set, see STRM00090, chap 32.8   (CAN Interrupts)    fig. 348
          *                     chap 32.9.5 (CAN registers map) table 184 */
-        switch (ctx->id) {
+        switch (ctx->port) {
            case CAN_PORT_1:
                ctx->can_dev.irqs[1].irq  = CAN1_RX0_IRQ;
                break;
@@ -418,7 +418,7 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
         /* RX1 interrupt is the consequence of RF1R register bits being
          * set, see STRM00090, chap 32.8   (CAN Interrupts)    fig. 348
          *                     chap 32.9.5 (CAN registers map) table 184 */
-        switch (ctx->id) {
+        switch (ctx->port) {
            case CAN_PORT_1:
               ctx->can_dev.irqs[2].irq = CAN1_RX1_IRQ;
               break;
@@ -453,7 +453,7 @@ mbed_error_t can_declare(__inout can_context_t *ctx)
          * b. the ESR register bits being set,
          * both in association with the IER register's authorizations.
          * see ST RM00090, chap 32.8 (CAN Interrupts) fig. 348 */
-        switch (ctx->id) {
+        switch (ctx->port) {
            case CAN_PORT_1:
               ctx->can_dev.irqs[3].irq = CAN1_SCE_IRQ;
               break;
@@ -526,13 +526,13 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
     }
 
     /* Awake (exit sleep mode) and request initialization, cf RM00090, 32.4.3 */
-    clear_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_SLEEP_Msk);
-    set_reg_bits  (r_CANx_MCR(ctx->id), CAN_MCR_INRQ_Msk);
+    clear_reg_bits(r_CANx_MCR(ctx->port), CAN_MCR_SLEEP_Msk);
+    set_reg_bits  (r_CANx_MCR(ctx->port), CAN_MCR_INRQ_Msk);
 
     /* waiting for init mode acknowledgment, i.e. that the INAK bit be set */
     check_nb = 0;
     do {
-        check = *r_CANx_MSR(ctx->id) & CAN_MSR_INAK_Msk;
+        check = *r_CANx_MSR(ctx->port) & CAN_MSR_INAK_Msk;
         check_nb++;
     } while ((check == 0) && (check_nb < MAX_BUSY_WAITING_CYCLES));
     if (check_nb == MAX_BUSY_WAITING_CYCLES) {
@@ -542,78 +542,78 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
 
     if (ctx->timetrigger) {
         /* Time Trigger Communication Mode */
-        set_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_TTCM_Msk);
+        set_reg_bits(r_CANx_MCR(ctx->port), CAN_MCR_TTCM_Msk);
     } else {
         /* or not... clearing TTCM */
-        clear_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_TTCM_Msk);
+        clear_reg_bits(r_CANx_MCR(ctx->port), CAN_MCR_TTCM_Msk);
     }
 
     if (ctx->autobusoff) {
         /* automatically  recover from Bus Off state */
-        set_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_ABOM_Msk);
+        set_reg_bits(r_CANx_MCR(ctx->port), CAN_MCR_ABOM_Msk);
     } else {
         /* or not...  */
-        clear_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_ABOM_Msk);
+        clear_reg_bits(r_CANx_MCR(ctx->port), CAN_MCR_ABOM_Msk);
     }
 
     if (ctx->autowakeup) {
         /* Auto wake up mode */
-        set_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_AWUM_Msk);
+        set_reg_bits(r_CANx_MCR(ctx->port), CAN_MCR_AWUM_Msk);
     } else {
         /* or not...
          * /!\ user software must clear the SLEEP bit when the IRQ EVENT WAKEUP
          *     is signaled, to exit sleep mode. This can be done by calling
          *     can_initialize.  */
-        clear_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_AWUM_Msk);
+        clear_reg_bits(r_CANx_MCR(ctx->port), CAN_MCR_AWUM_Msk);
     }
 
     if (ctx->autoretrans) {
         /* Automatic retransmission until successfully transmitted */
-        clear_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_NART_Msk);
+        clear_reg_bits(r_CANx_MCR(ctx->port), CAN_MCR_NART_Msk);
     } else {
         /* message transmitted only once...  */
-        set_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_NART_Msk);
+        set_reg_bits(r_CANx_MCR(ctx->port), CAN_MCR_NART_Msk);
     }
 
     if (ctx->rxfifolocked) {
         /* Auto wake up mode */
-        clear_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_RFLM_Msk);
+        clear_reg_bits(r_CANx_MCR(ctx->port), CAN_MCR_RFLM_Msk);
     } else {
         /* or not...  */
-        set_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_RFLM_Msk);
+        set_reg_bits(r_CANx_MCR(ctx->port), CAN_MCR_RFLM_Msk);
     }
 
     if (ctx->txfifoprio) {
         /* TX Fifo priority is driven by : */
         /*    1. The chronological order of the requests */
-        set_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_TXFP_Msk);
+        set_reg_bits(r_CANx_MCR(ctx->port), CAN_MCR_TXFP_Msk);
     } else {
         /*   0. The identifier field of the message */
-        clear_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_TXFP_Msk);
+        clear_reg_bits(r_CANx_MCR(ctx->port), CAN_MCR_TXFP_Msk);
     }
 
     /* set the timing register */
     /* SILM to normal operation mode */
     switch (ctx->mode) {
         case CAN_MODE_NORMAL:
-            set_reg(r_CANx_BTR(ctx->id), 0x0, CAN_BTR_SILM);
-            set_reg(r_CANx_BTR(ctx->id), 0x0, CAN_BTR_LBKM);
+            set_reg(r_CANx_BTR(ctx->port), 0x0, CAN_BTR_SILM);
+            set_reg(r_CANx_BTR(ctx->port), 0x0, CAN_BTR_LBKM);
             break;
         case CAN_MODE_SILENT:
-            set_reg(r_CANx_BTR(ctx->id), 0x1, CAN_BTR_SILM);
-            set_reg(r_CANx_BTR(ctx->id), 0x0, CAN_BTR_LBKM);
+            set_reg(r_CANx_BTR(ctx->port), 0x1, CAN_BTR_SILM);
+            set_reg(r_CANx_BTR(ctx->port), 0x0, CAN_BTR_LBKM);
             break;
         case CAN_MODE_LOOPBACK:
-            set_reg(r_CANx_BTR(ctx->id), 0x0, CAN_BTR_SILM);
-            set_reg(r_CANx_BTR(ctx->id), 0x1, CAN_BTR_LBKM);
+            set_reg(r_CANx_BTR(ctx->port), 0x0, CAN_BTR_SILM);
+            set_reg(r_CANx_BTR(ctx->port), 0x1, CAN_BTR_LBKM);
             break;
         case CAN_MODE_SILENT_LOOPBACK:
-            set_reg(r_CANx_BTR(ctx->id), 0x1, CAN_BTR_SILM);
-            set_reg(r_CANx_BTR(ctx->id), 0x1, CAN_BTR_LBKM);
+            set_reg(r_CANx_BTR(ctx->port), 0x1, CAN_BTR_SILM);
+            set_reg(r_CANx_BTR(ctx->port), 0x1, CAN_BTR_LBKM);
             break;
         default:
-            set_reg(r_CANx_BTR(ctx->id), 0x0, CAN_BTR_SILM);
-            set_reg(r_CANx_BTR(ctx->id), 0x0, CAN_BTR_LBKM);
+            set_reg(r_CANx_BTR(ctx->port), 0x0, CAN_BTR_SILM);
+            set_reg(r_CANx_BTR(ctx->port), 0x0, CAN_BTR_LBKM);
             break;
     }
 
@@ -682,10 +682,10 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
         bs1 = 13;
         bs2 =  7;
     }
-    set_reg(r_CANx_BTR(ctx->id), brp -1, CAN_BTR_BRP);
-    set_reg(r_CANx_BTR(ctx->id), bs1 -1, CAN_BTR_TS1);
-    set_reg(r_CANx_BTR(ctx->id), bs2 -1, CAN_BTR_TS2);
-    set_reg(r_CANx_BTR(ctx->id), sjw -1, CAN_BTR_SJW);
+    set_reg(r_CANx_BTR(ctx->port), brp -1, CAN_BTR_BRP);
+    set_reg(r_CANx_BTR(ctx->port), bs1 -1, CAN_BTR_TS1);
+    set_reg(r_CANx_BTR(ctx->port), bs2 -1, CAN_BTR_TS2);
+    set_reg(r_CANx_BTR(ctx->port), sjw -1, CAN_BTR_SJW);
 
 
     /* Reset filtering */
@@ -697,23 +697,23 @@ mbed_error_t can_initialize(__inout can_context_t *ctx)
     set_reg(r_CAN_FMR, 14, CAN_FMR_CAN2SB);
 
     /* Now reset only the filters for the CAN that is initialized */
-    if (ctx->id == CAN_PORT_1) {
+    if (ctx->port == CAN_PORT_1) {
         /* For CAN 1, reset filtering to everything on FIFO 0 */
         set_reg(r_CAN_FA1R, 0, CAN_FILTERS_LOWER_HALF); // No Filter activated !
         clear_reg_bits(r_CAN_FM1R,  CAN_FILTERS_LOWER_HALF_Msk); // ID mask mode.
         set_reg_bits  (r_CAN_FS1R,  CAN_FILTERS_LOWER_HALF_Msk); // 32 bit scale.
         clear_reg_bits(r_CAN_FFA1R, CAN_FILTERS_LOWER_HALF_Msk); // FIFO 0.
-         *r_CAN_F0R1  = 0; // Filter #0, ID 0.
+         *r_CAN_F0R1  = 1; // Filter #0, ID can be anything.
          *r_CAN_F0R2  = 0; // Filter #0, bit mask at 0 = Don't care !
          set_reg(r_CAN_FA1R, 1, CAN_FILTERS_LOWER_HALF); // Filter #0 is activated !
     } else
-    if (ctx->id == CAN_PORT_2) {
+    if (ctx->port == CAN_PORT_2) {
         /* For CAN 2, reset filtering to everything on FIFO 0 */
         set_reg(r_CAN_FA1R, 0, CAN_FILTERS_UPPER_HALF); // No Filter activated !
         clear_reg_bits(r_CAN_FM1R,  CAN_FILTERS_UPPER_HALF_Msk); // ID mask mode.
         set_reg_bits  (r_CAN_FS1R,  CAN_FILTERS_UPPER_HALF_Msk); // 32 bits.
         clear_reg_bits(r_CAN_FFA1R, CAN_FILTERS_UPPER_HALF_Msk); // FIFO 0.
-         *r_CAN_F14R1  = 0; // Filter #14, ID can be anything.
+         *r_CAN_F14R1  = 2; // Filter #14, ID can be anything.
          *r_CAN_F14R2  = 0; // Filter #14, bit mask at 0 = Don't care !
          set_reg(r_CAN_FA1R, 1, CAN_FILTERS_UPPER_HALF); // Filter #14 is activated !
     }
@@ -741,7 +741,7 @@ mbed_error_t can_release(__inout can_context_t *ctx)
         return MBED_ERROR_INVSTATE;
     }
 
-    set_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_RESET_Msk);
+    set_reg_bits(r_CANx_MCR(ctx->port), CAN_MCR_RESET_Msk);
     ctx->state = CAN_STATE_RESET;
 
     if (sys_cfg(CFG_DEV_RELEASE, (uint32_t)ctx->can_dev_handle) != SYS_E_DONE) {
@@ -760,9 +760,9 @@ mbed_error_t can_set_filters(__in can_context_t *ctx)
     volatile can_filters_table_t * filter_table;
     mbed_error_t err = MBED_ERROR_NONE;
 
-    if (ctx->id == 1) {
+    if (ctx->port == 1) {
         filter_table = r_CAN1_FxRy();
-    } else if (ctx->id == 2) {
+    } else if (ctx->port == 2) {
         filter_table = r_CAN2_FxRy();
     } else {
         err = MBED_ERROR_INVPARAM;
@@ -797,7 +797,7 @@ mbed_error_t can_start(__inout can_context_t *ctx)
     if (ctx->access == CAN_ACCESS_IT) {
         /* Clear all pending interrupts before starting.
          * /!\ rc_w1 bits : write 1 to clear ! */
-        set_reg_bits(r_CANx_MSR(ctx->id), CAN_MSR_SLAKI_Msk |
+        set_reg_bits(r_CANx_MSR(ctx->port), CAN_MSR_SLAKI_Msk |
                                           CAN_MSR_WKUI_Msk  |
                                           CAN_MSR_ERRI_Msk);
         uint32_t ier_val = 0;
@@ -812,16 +812,16 @@ mbed_error_t can_start(__inout can_context_t *ctx)
                   CAN_IER_FMPIE0_Msk |
                   CAN_IER_FMPIE1_Msk |
                   CAN_IER_TMEIE_Msk;
-        write_reg_value(r_CANx_IER(ctx->id), ier_val);
+        write_reg_value(r_CANx_IER(ctx->port), ier_val);
     }
 
     /* Request Normal mode */
-    clear_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_INRQ_Msk);
+    clear_reg_bits(r_CANx_MCR(ctx->port), CAN_MCR_INRQ_Msk);
 
     /* waiting for Normal mode acknowledgment, i.e. that INAK bit be cleared */
     check_nb = 0;
     do {
-        check = *r_CANx_MSR(ctx->id) & CAN_MSR_INAK_Msk;
+        check = *r_CANx_MSR(ctx->port) & CAN_MSR_INAK_Msk;
         check_nb++;
     } while ((check != 0) && check_nb < MAX_BUSY_WAITING_CYCLES);
     if (check_nb == MAX_BUSY_WAITING_CYCLES) {
@@ -846,11 +846,11 @@ mbed_error_t can_stop(__inout can_context_t *ctx)
     if (ctx->state != CAN_STATE_STARTED) {
         return MBED_ERROR_INVSTATE;
     }
-    set_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_INRQ_Msk);
+    set_reg_bits(r_CANx_MCR(ctx->port), CAN_MCR_INRQ_Msk);
     /* waiting for init mode acknowledgment */
     check_nb = 0;
     do {
-        check = *r_CANx_MSR(ctx->id) & CAN_MSR_INAK_Msk;
+        check = *r_CANx_MSR(ctx->port) & CAN_MSR_INAK_Msk;
         check_nb++;
     } while ((check == 0) && (check_nb < MAX_BUSY_WAITING_CYCLES));
     if (check_nb == MAX_BUSY_WAITING_CYCLES) {
@@ -858,7 +858,7 @@ mbed_error_t can_stop(__inout can_context_t *ctx)
     }
 
     /* Exit from sleep mode */
-    clear_reg_bits(r_CANx_MCR(ctx->id), CAN_MCR_SLEEP_Msk);
+    clear_reg_bits(r_CANx_MCR(ctx->port), CAN_MCR_SLEEP_Msk);
 
     ctx->state = CAN_STATE_READY;
     return MBED_ERROR_NONE;
@@ -892,7 +892,7 @@ mbed_error_t can_emit(const __in  can_context_t *ctx,
     }
 
     /* select the first empty mailbox in order */
-    tme = get_reg_value(r_CANx_TSR(ctx->id), CAN_TSR_TME_Msk, CAN_TSR_TME_Pos);
+    tme = get_reg_value(r_CANx_TSR(ctx->port), CAN_TSR_TME_Msk, CAN_TSR_TME_Pos);
     if (tme == 0x0) {
         /* no empty mailbox */
         errcode = MBED_ERROR_BUSY;
@@ -902,22 +902,22 @@ mbed_error_t can_emit(const __in  can_context_t *ctx,
     /* select first empty mbox */
     if ((tme & 0x1)) {
         *mbox = CAN_MBOX_0;
-        can_tdlxr = r_CANx_TDL0R(ctx->id);
-        can_tdhxr = r_CANx_TDH0R(ctx->id);
-        can_tixr  = r_CANx_TI0R (ctx->id);
-        can_tdtxr = r_CANx_TDT0R(ctx->id);
+        can_tdlxr = r_CANx_TDL0R(ctx->port);
+        can_tdhxr = r_CANx_TDH0R(ctx->port);
+        can_tixr  = r_CANx_TI0R (ctx->port);
+        can_tdtxr = r_CANx_TDT0R(ctx->port);
     } else if (tme & 0x2) {
         *mbox = CAN_MBOX_1;
-        can_tdlxr = r_CANx_TDL1R(ctx->id);
-        can_tdhxr = r_CANx_TDH1R(ctx->id);
-        can_tixr  = r_CANx_TI1R (ctx->id);
-        can_tdtxr = r_CANx_TDT1R(ctx->id);
+        can_tdlxr = r_CANx_TDL1R(ctx->port);
+        can_tdhxr = r_CANx_TDH1R(ctx->port);
+        can_tixr  = r_CANx_TI1R (ctx->port);
+        can_tdtxr = r_CANx_TDT1R(ctx->port);
     } else if (tme & 0x4) {
         *mbox = CAN_MBOX_2;
-        can_tdlxr = r_CANx_TDL2R(ctx->id);
-        can_tdhxr = r_CANx_TDH2R(ctx->id);
-        can_tixr  = r_CANx_TI2R (ctx->id);
-        can_tdtxr = r_CANx_TDT2R(ctx->id);
+        can_tdlxr = r_CANx_TDL2R(ctx->port);
+        can_tdhxr = r_CANx_TDH2R(ctx->port);
+        can_tixr  = r_CANx_TI2R (ctx->port);
+        can_tdtxr = r_CANx_TDT2R(ctx->port);
     } else {
         /* should not be executed with the tme == 0x0 check */
         errcode = MBED_ERROR_UNKNOWN;
@@ -1004,18 +1004,18 @@ mbed_error_t can_receive(const __in  can_context_t *ctx,
     }
     switch (fifo) {
         case CAN_FIFO_0:
-            can_rfxr  = r_CANx_RF0R(ctx->id);
-            can_rixr  = r_CANx_RI0R(ctx->id);
-            can_rdtxr = r_CANx_RDT0R(ctx->id);
-            can_rdlxr = r_CANx_RDL0R(ctx->id);
-            can_rdhxr = r_CANx_RDH0R(ctx->id);
+            can_rfxr  = r_CANx_RF0R(ctx->port);
+            can_rixr  = r_CANx_RI0R(ctx->port);
+            can_rdtxr = r_CANx_RDT0R(ctx->port);
+            can_rdlxr = r_CANx_RDL0R(ctx->port);
+            can_rdhxr = r_CANx_RDH0R(ctx->port);
             break;
         case CAN_FIFO_1:
-            can_rfxr  = r_CANx_RF1R(ctx->id);
-            can_rixr  = r_CANx_RI1R(ctx->id);
-            can_rdtxr = r_CANx_RDT1R(ctx->id);
-            can_rdlxr = r_CANx_RDL1R(ctx->id);
-            can_rdhxr = r_CANx_RDH1R(ctx->id);
+            can_rfxr  = r_CANx_RF1R(ctx->port);
+            can_rixr  = r_CANx_RI1R(ctx->port);
+            can_rdtxr = r_CANx_RDT1R(ctx->port);
+            can_rdlxr = r_CANx_RDL1R(ctx->port);
+            can_rdhxr = r_CANx_RDH1R(ctx->port);
 	          break;
         default:
             errcode = MBED_ERROR_INVPARAM;
@@ -1057,13 +1057,13 @@ mbed_error_t can_receive(const __in  can_context_t *ctx,
     set_reg_bits(can_rfxr, CAN_RFxR_RFOMx_Msk);
     /* restore interruptions on the FIFO to get another frame */
     if (fifo == CAN_FIFO_0) {
-       set_reg_bits(r_CANx_IER(ctx->id), CAN_IER_FMPIE0_Msk
-                                       | CAN_IER_FFIE0_Msk
-                                       | CAN_IER_FOVIE0_Msk);
+       set_reg_bits(r_CANx_IER(ctx->port), CAN_IER_FMPIE0_Msk
+                                          | CAN_IER_FFIE0_Msk
+                                          | CAN_IER_FOVIE0_Msk);
     } else {
-       set_reg_bits(r_CANx_IER(ctx->id), CAN_IER_FMPIE1_Msk
-                                       | CAN_IER_FFIE1_Msk
-                                       | CAN_IER_FOVIE1_Msk);
+       set_reg_bits(r_CANx_IER(ctx->port), CAN_IER_FMPIE1_Msk
+                                         | CAN_IER_FFIE1_Msk
+                                         | CAN_IER_FOVIE1_Msk);
     }
 err:
     return errcode;
@@ -1087,7 +1087,7 @@ mbed_error_t can_is_txmsg_pending(const __in  can_context_t *ctx,
         errcode = MBED_ERROR_INVSTATE;
         goto err;
     }
-    tme = get_reg_value(r_CANx_TSR(ctx->id), CAN_TSR_TME_Msk, CAN_TSR_TME_Pos);
+    tme = get_reg_value(r_CANx_TSR(ctx->port), CAN_TSR_TME_Msk, CAN_TSR_TME_Pos);
     switch (mbox) {
         case CAN_MBOX_0:
             if ((tme & 0x1) == 0) {

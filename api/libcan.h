@@ -221,7 +221,7 @@ typedef union {
  */
 typedef struct {
     /* about infos set at declare time by uper layer **/
-    can_port_t     id;              /* CAN port identifier */
+    can_port_t     port;            /* CAN port identifier */
     can_mode_t     mode;            /* normal, silent (debug) or loopback (debug)) */
     can_access_t   access;          /* access mode (polling or IT based) */
     bool           timetrigger;     /* Time triggered communication mode */
@@ -263,6 +263,7 @@ mbed_error_t can_emit(const __in  can_context_t *ctx,
                             __in  can_data_t    *data,
                             __out can_mbox_t    *mbox);
 
+/* did a message arrived in an Rx FIFO ? */
 mbed_error_t can_is_txmsg_pending(const __in  can_context_t *ctx,
                                         __in  can_mbox_t mbox,
                                         __out bool *status);
