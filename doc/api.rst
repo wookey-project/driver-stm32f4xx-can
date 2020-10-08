@@ -15,7 +15,7 @@ It is done with the following API::
    mbed_error_t can_initialize(__inout can_context_t *ctx);
 
 This two functions use the can_context_t structure to hold the CAN context. This
-context must be kept by the upper layer and passed to all CAN driver functions.
+context must be kept by the upper layer and passed to all CAN driver's functions.
 This permits to keep the libcan reentrant and allows the usage of multiple
 contexts by the same application.
 
