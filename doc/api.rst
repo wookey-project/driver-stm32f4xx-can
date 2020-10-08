@@ -4,8 +4,8 @@ The CAN driver API
 .. highlight:: c
 
 
-Initializing the CAN driver
-"""""""""""""""""""""""""""""
+initialization of the CAN driver
+""""""""""""""""""""""""""""""""
 
 It is done with the following API::
 
@@ -19,7 +19,7 @@ context must be kept by the upper layer and passed to all CAN driver functions.
 This permits to keep the libcan reentrant and allows the usage of multiple
 contexts by the same application.
 
-The CAN driver's declaration must be executed before the end of the task
+The CAN driver's declaration must be executed before the end of the task's
 initialization phase (see EwoK kernel API). This function declares the device to
 the kernel, requesting an access to it. The only required field needed in the
 context is the CAN identifier (*port* field) which specifies the CAN device to
@@ -28,9 +28,7 @@ use.
 
 At device's initialization time, other fields are required:
 
-   * CAN mode, which can be NORMAL (standard CAN interaction), SILENT (only
-   reception, no message is sent on the CAN bus), LOOPBACK (all messages sent
-   are also received on the same device) and SILENT LOOPBACK.
+   * CAN mode, which can be NORMAL (standard CAN interaction), SILENT (only reception, no message is sent on the CAN bus), LOOPBACK (all messages sent are also received on the same device) and SILENT LOOPBACK.
    * CAN access mode, which can be poll mode (no interrupt) or interrupt based
    * CAN bus bit rate, (only 250 and 500 k bit/s have been tested)
    * Time trigger activation, which marks CAN messages headers with local timestamping
@@ -76,8 +74,8 @@ it is executed as an IRQ, treatments must be fast and short, and never stop.
 Events also signal errors in the device or on the CAN bus.
 
 
-Starting and stopping the CAN device
-""""""""""""""""""""""""""""""""""""
+To start and stop the CAN device
+""""""""""""""""""""""""""""""""
 
 The CAN device is configured in a specific mode, named INIT mode. Before
 receiving or sending CAN messages, the CAN device must be started explicitely.
@@ -91,10 +89,10 @@ this event until *can_start()* is called again. This is done using::
    mbed_error_t can_stop(__inout can_context_t *ctx);
 
 
-Sending and receiving messages
-""""""""""""""""""""""""""""""
+To send and receive messages
+""""""""""""""""""""""""""""
 
-Sending and receiving CAN messages is done using the following API::
+This is done through the following API::
 
     /* send data into one of the CAN Tx FIFO */
     mbed_error_t can_emit(const __in  can_context_t *ctx,
