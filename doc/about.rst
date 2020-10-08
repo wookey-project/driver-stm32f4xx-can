@@ -4,8 +4,8 @@ About the CAN driver
 Principles
 """"""""""
 
-About CAN protocol
-^^^^^^^^^^^^^^^^^^
+The CAN protocol
+^^^^^^^^^^^^^^^^
 
 CAN (Controller Area Network) is a widely used, robust, serial communication bus
 which allows a set of MCU to communicate with each others. CAN buses are mostly

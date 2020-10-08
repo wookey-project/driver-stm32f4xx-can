@@ -263,7 +263,7 @@ mbed_error_t can_emit(const __in  can_context_t *ctx,
                             __in  can_data_t    *data,
                             __out can_mbox_t    *mbox);
 
-/* did a message arrived in an Rx FIFO ? */
+/* did a message arrive in an Rx FIFO ? */
 mbed_error_t can_is_txmsg_pending(const __in  can_context_t *ctx,
                                         __in  can_mbox_t mbox,
                                         __out bool *status);

@@ -1,5 +1,5 @@
-AAbout The CAN driver API
-------------------------
+The CAN driver API
+------------------
 
 .. highlight:: c
 
@@ -28,11 +28,9 @@ use.
 
 At device's initialization time, other fields are required:
 
-   * CAN mode, which may be:
-       * NORMAL: standard CAN interaction
-       * SILENT: reception only, no message is sent on the CAN bus
-       * LOOPBACK: all messages sent are also received
-       * SILENT LOOPBACK
+   * CAN mode, which can be NORMAL (standard CAN interaction), SILENT (only
+   reception, no message is sent on the CAN bus), LOOPBACK (all messages sent
+   are also received on the same device) and SILENT LOOPBACK.
    * CAN access mode, which can be poll mode (no interrupt) or interrupt based
    * CAN bus bit rate, (only 250 and 500 k bit/s have been tested)
    * Time trigger activation, which marks CAN messages headers with local timestamping
@@ -73,7 +71,7 @@ done, the driver's handler calls the following, user provided, procedure::
 
 Hence, if the CAN device access mode has been configured to "CAN_ACCESS_IT" the
 user must treat all RX and TX events in this procedure, knowing that, because
-it is executed as an IRQ,treatments must be fast and short, and never stop.
+it is executed as an IRQ, treatments must be fast and short, and never stop.
 
 Events also signal errors in the device or on the CAN bus.
 
@@ -104,7 +102,7 @@ Sending and receiving CAN messages is done using the following API::
                                 __in  can_data_t    *data,
                                 __out can_mbox_t    *mbox);
 
-    /* did a message arrived in an Rx FIFO ? */
+    /* did a message arrive in an Rx FIFO ? */
     mbed_error_t can_is_txmsg_pending(const __in  can_context_t *ctx,
                                             __in  can_mbox_t mbox,
                                             __out bool *status);
