@@ -30,7 +30,7 @@ At device's initialization time, other fields are required:
 
    * CAN mode, which can be NORMAL (standard CAN interaction), SILENT (only reception, no message is sent on the CAN bus), LOOPBACK (all messages sent are also received on the same device) and SILENT LOOPBACK.
    * CAN access mode, which can be poll mode (no interrupt) or interrupt based
-   * CAN bus bit rate, (only 250 and 500 k bit/s have been tested)
+   * CAN bus bit rate : 250, 500 and 1000 k bit/s have been tested.
    * Time trigger activation, which marks CAN messages headers with local timestamping
    * auto bus off management: automatic recovery from bus off state
    * auto wakeup: allows wake up from sleep mode on CAN messages' reception

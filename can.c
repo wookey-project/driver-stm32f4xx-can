@@ -798,10 +798,12 @@ mbed_error_t can_start(__inout can_context_t *ctx)
         /* Clear all pending interrupts before starting.
          * /!\ rc_w1 bits : write 1 to clear ! */
         set_reg_bits(r_CANx_MSR(ctx->port), CAN_MSR_SLAKI_Msk |
-                                          CAN_MSR_WKUI_Msk  |
-                                          CAN_MSR_ERRI_Msk);
+                                            CAN_MSR_WKUI_Msk  |
+                                            CAN_MSR_ERRI_Msk);
         uint32_t ier_val = 0;
+
         ier_val = CAN_IER_ERRIE_Msk  |
+                  //CAN_IER_LECIE_Msk  | // signal all CAN errors...
                   CAN_IER_BOFIE_Msk  |
                   CAN_IER_EPVIE_Msk  |
                   CAN_IER_EWGIE_Msk  |
@@ -812,6 +814,7 @@ mbed_error_t can_start(__inout can_context_t *ctx)
                   CAN_IER_FMPIE0_Msk |
                   CAN_IER_FMPIE1_Msk |
                   CAN_IER_TMEIE_Msk;
+
         write_reg_value(r_CANx_IER(ctx->port), ier_val);
     }
 
