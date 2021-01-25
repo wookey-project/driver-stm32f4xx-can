@@ -163,8 +163,9 @@
 #define CAN_ESR_LEC_Pos 4U
 #define CAN_ESR_LEC_Msk ((uint32_t)7 << CAN_ESR_LEC_Pos)
 #define CAN_ESR_TEC_Pos 16U
-#define CAN_ESR_TEC_Msk ((uint32_t)0xffff << CAN_ESR_TEC_Pos)
-
+#define CAN_ESR_TEC_Msk ((uint32_t)0xff << CAN_ESR_TEC_Pos)
+#define CAN_ESR_REC_Pos 24U
+#define CAN_ESR_REC_Msk ((uint32_t)0xff << CAN_ESR_REC_Pos)
 
 /* BTR Bit Timing Register */
 #define CAN_BTR 0x01C
@@ -357,7 +358,7 @@
 
 #define CAN_FFA1R 0x214
 #define r_CAN_FFA1R REG_ADDR(CAN1_BASE + CAN_FFA1R)
-/* FFA1R is a table of 28 bits holding scale FIFO assignment
+/* FFA1R is a table of 28 bits holding the FIFO assignment
  * configuration for each of 28 filters (0 = FIFO0, 1 = FIFO1) */
 
 #define CAN_FA1R 0x21C
@@ -368,6 +369,9 @@
 /* can filtering registers (two per filters, 28 filters) */
 #define r_CAN_F0R1   REG_ADDR(CAN1_BASE + 0x240)
 #define r_CAN_F0R2   REG_ADDR(CAN1_BASE + 0x244)
+/* ... */
+#define r_CAN_F14R1  REG_ADDR(CAN1_BASE + 0x2B0)
+#define r_CAN_F14R2  REG_ADDR(CAN1_BASE + 0x2B4)
 /* up to F27R2... */
 
 
@@ -381,8 +385,12 @@ typedef struct __attribute__((packed)) {
     uint32_t fiR2;
 } can_filters_table_t;
 
-/* max number of filters register pairs */
-#define CAN_MAX_FILTERS 28
+/* max number of filter register pairs */
+#define CAN_MAX_FILTERS 28U
+#define CAN_FILTERS_LOWER_HALF_Pos 0U
+#define CAN_FILTERS_LOWER_HALF_Msk (uint32_t)0x00003FFF
+#define CAN_FILTERS_UPPER_HALF_Pos 14U
+#define CAN_FILTERS_UPPER_HALF_Msk (uint32_t)0x0FFFC000
 
 /* filters register pairs table */
 static volatile can_filters_table_t *_r_can1_filters = (volatile can_filters_table_t*)REG_ADDR(CAN1_BASE + 0x240);
